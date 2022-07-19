@@ -3,9 +3,9 @@ clear
 close all
 clc
 
-lifetime    = 1;
+lifetime    = 0;
 deconv      = 0;
-sofi        = 1;
+sofi        = 0;
 %% Loadind data
 % load('scimaps.mat');
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
@@ -205,7 +205,7 @@ if (lifetime||sofi)
 
     for i = 1:n_pixel_ISM
        [x,y] = ind2sub(ISM_size,i);
-       ind = find((loISM_linwer:upper) == i);
+       ind = find(ISM_lin(lower:upper) == i);
        if ~isempty(ind)
            if(ISM_img(y,x) > lt_cut_off)
                [count, ~]   = histcounts(im_tcspc(lower + ind-1), 1:bin_factor:max_bin+1);
