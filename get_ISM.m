@@ -4,7 +4,7 @@ close all
 clc
 
 lifetime    = 0;
-deconv      = 0;
+deconv      = 1;
 sofi        = 0;
 %% Loadind data
 % load('scimaps.mat');
@@ -117,9 +117,6 @@ tail_end = max_bin - 100;
 % TCSPC bin length in ns
 tcspc_bin_l = time_R *1e9;
 
-% TCSPC tail lenght in ns
-tcspc_tail_l = (tail_end - tail_start) * tcspc_bin_l;
-
 % combin binning for lifetime fitting
 % Lifetime bin lenght in ns
 lt_bin_l = tcspc_bin_l * bin_factor;
@@ -128,10 +125,41 @@ lt_bin_l = tcspc_bin_l * bin_factor;
 lt_start    = floor(tail_start / bin_factor);
 lt_end      = floor(tail_end / bin_factor); %floor or ciel?
 
+% TCSPC tail lenght in ns
+% tcspc_tail_l = (tail_end - tail_start) * tcspc_bin_l;
 tcspc_tail_l = (lt_end - lt_start) * lt_bin_l;
 
 % Max Lifetime in ns
 max_lt = 20;
+
+% SOFI Params
+
+%duration of one frames (image) in seconds for SOFI JE 100 mu sec
+img_d = 10e-5;
+
+%number of frames per batch
+batch_length = 500;
+
+%total number for frames per pixel
+n_frames = ceil(head.ImgHdr_DwellTime /img_d);
+
+% fix ?
+if n_frames < batch_length
+    fprintf('more frames per batch than total frames per pixel. Setting batch size to n_frames\n')
+    batch_length = ceil(n_frames);
+end
+
+%number of bathes with batch_length images
+n_batch = ceil(n_frames / batch_length);
+
+%fix ?
+if(n_batch * batch_length > n_frames)
+    n_batch = n_batch -1;
+end
+
+fprintf('Using %g sec frame lenght. Resulting in max %g frames per pixel\n', img_d, ceil(n_frames))
+fprintf('With %g frames per batch. Resulting in %g batches per pixel\n', batch_length, n_batch)
+
 
 %number of events
 n_events = numel(im_posx);
@@ -179,7 +207,7 @@ if(deconv)
                 c_map = spectrum, s_name = ISM_docn_name, ...
                 t_name = 'ISM + deconvolution', ...
                 sb_lenght = 1,IM_R = IM_R,...
-                reso = 1, save = 1);
+                reso = 0, save = 1);
 end
 %% Lifetime Image
 
@@ -202,29 +230,50 @@ if (lifetime||sofi)
     im_time     = im_time(sort_index);
     im_posy     = im_posy(sort_index);
     im_posx     = im_posx(sort_index);
+    
+    save_lower = zeros(n_pixel_ISM,1);
+    save_upper = zeros(n_pixel_ISM,1);
 
     for i = 1:n_pixel_ISM
        [x,y] = ind2sub(ISM_size,i);
        ind = find(ISM_lin(lower:upper) == i);
+       save_lower(i) = lower;
+       save_upper(i) = upper;
        if ~isempty(ind)
-           if(ISM_img(y,x) > lt_cut_off)
+%            only do lifetime analysis when enought photons are there and
+%            falg is set
+           if(ISM_img(y,x) > lt_cut_off && lifetime)
                [count, ~]   = histcounts(im_tcspc(lower + ind-1), 1:bin_factor:max_bin+1);
                count = count(lt_start:lt_end);
                count = count / sum(count);
                ISM_lt(i,:)  = count;%(lt_start:lt_end);
-               %set lower edge to last found puls 1
-               n_lower      = lower + ind(end);
            end
+
+           if(sofi && x == 37 && y == 27)
+               f_time = im_time(lower + ind-1) + im_tcspc(lower + ind-1) * time_R;
+                
+               t_max = max(f_time);
+               t_min = min(f_time);
+
+               frame_time = t_min:img_d:t_max;
+               frames = size(frame_time,2)-1;
+               detector = zeros(23,1,frames);
+
+           end
+           %set lower edge to last found puls 1
+           n_lower      = lower + ind(end);
            %set new upper edge to lower plus interval length
            upper        = min(n_lower + interval, n_events);
-           lower        = n_lower;
        else
            %set new searche boundarys. because nothing was found keep lower
            %extend upper
            n_lower      = lower;
            upper        = min(upper + interval, n_events);
-           lower        = n_lower;
+
        end
+       %set lower
+       lower        = n_lower;
+
        if (mod(i,n_pixel_ISM/100) == 0)
             waitbar(i/n_pixel_ISM,h)
        end
@@ -244,6 +293,11 @@ if (lifetime||sofi)
     figure
     histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < 20),linspace(0.01,max_lt,100),'Normalization','probability')
 end
+% figure
+% hold on
+% plot(ISM_lin, 1:n_events, 'b-')
+% plot( save_lower, 'r-')
+% plot( save_upper, 'g-')
 %% Confocal Image
 %generate confocal image
 [sum_img,~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
