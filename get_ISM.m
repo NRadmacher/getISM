@@ -224,7 +224,7 @@ if(deconv)
 end
 %% Lifetime Image
 
-if (lifetime||sofi)
+if (lifetime)
 
     interval        = round(1.1* max(max(ISM_img)));
     n_pixel_ISM     = prod(ISM_size);
@@ -241,29 +241,30 @@ if (lifetime||sofi)
     [ISM_lin, sort_index] = sort(ISM_lin);
     im_tcspc    = im_tcspc(sort_index);
 
+    save_lower = zeros(n_pixel_ISM,1);
+    save_upper = zeros(n_pixel_ISM,1);
+
     for i = 1:n_pixel_ISM
        [x,y] = ind2sub(ISM_size,i);
        ind = find(ISM_lin(lower:upper) == i);
+       save_lower(i) = lower;
+       save_upper(i) = upper;
        if ~isempty(ind)
            if(ISM_img(y,x) > lt_cut_off)
                [count, ~]   = histcounts(im_tcspc(lower + ind-1), 1:bin_factor:max_bin+1);
                count = count(lt_start:lt_end);
                ISM_lt(i,:)  = count./sum(count);
            end
-           %set lower edge to last found puls 1
-           n_lower      = lower + ind(end);
-           %set new upper edge to lower plus interval length
-           upper        = min(n_lower + interval, n_events);
+%          set new upper edge to lower plus interval length
+           upper    = min(lower + ind(end) + interval, n_events);
+%          set lower edge to last found puls 1
+           lower    = lower + ind(end);
        else
-           %set new searche boundarys. because nothing was found keep lower
-           %extend upper
-           n_lower      = lower;
-           upper        = min(upper + interval, n_events);
+%            set new searche boundarys. because nothing was found keep
+%            lower extend upper
+           upper    = min(upper + interval, n_events);
 
        end
-       %set lower
-       lower        = n_lower;
-
        if (mod(i,n_pixel_ISM/100) == 0)
             waitbar(i/n_pixel_ISM,h)
        end
@@ -283,6 +284,12 @@ if (lifetime||sofi)
     figure
     histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < 20),linspace(0.01,max_lt,100),'Normalization','probability')
 end
+
+figure
+hold on
+plot(ISM_lin, 1:n_events, 'b-')
+plot( save_lower, 'r-')
+plot( save_upper, 'g-')
 
 %% SOFI
 if (sofi)
