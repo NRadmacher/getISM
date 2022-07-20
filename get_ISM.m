@@ -3,9 +3,9 @@ clear
 close all
 clc
 
-lifetime    = 0;
+lifetime    = 1;
 deconv      = 0;
-sofi        = 1;
+sofi        = 0;
 %% Loadind data
 % load('scimaps.mat');
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
@@ -181,6 +181,18 @@ ISM_posy    = im_posy + shift_y;
 
 %counts per detector pixel
 [pixel_int, ~]   = histcounts(im_pix,0:23);
+
+%% Confocal Image
+%generate confocal image
+[sum_img, sum_lin, sum_size] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
+
+%remoce dark count
+sum_img     = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
+
+%plot and save
+reso_line_conf = [[105 105]; [30 65]];
+img_plot(sum_img, spectrum, colf_name, 'confocal', 1, IM_R, reso_line_conf, 0, 1);
+
 %% ISM Image
 %crate ISM image
 [ISM_img, ISM_lin, ISM_size]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
@@ -192,7 +204,8 @@ ISM_img  = max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0);
 
 reso_line_ISM = [[107 107]; [30 65]];
 img_plot(ISM_img, spectrum, ISM_name, 'ISM', 1, IM_R, reso_line_ISM, 0, 1);
-%% lucy Richerson decon
+
+%% manuel lucy Richerson decon
 
 if(deconv)
     PSF_file = matfile('PSF.m');
@@ -216,7 +229,67 @@ if (lifetime||sofi)
     interval        = round(1.1* max(max(ISM_img)));
     n_pixel_ISM     = prod(ISM_size);
     ISM_lt          = zeros(n_pixel_ISM, lt_end-lt_start+1);
-    SOFI_ISM_img    = zeros(n_pixel_ISM, 1);
+
+    h = waitbar(0,'binning');
+    %find all photons in one ISM pixel, by seaching in an interval of max count
+    %lengh + 1 
+    lower = 1;
+    upper = interval;
+
+    % care y x könnten vertauscht sein
+    % order photons in ISM lin index
+    [ISM_lin, sort_index] = sort(ISM_lin);
+    im_tcspc    = im_tcspc(sort_index);
+
+    for i = 1:n_pixel_ISM
+       [x,y] = ind2sub(ISM_size,i);
+       ind = find(ISM_lin(lower:upper) == i);
+       if ~isempty(ind)
+           if(ISM_img(y,x) > lt_cut_off)
+               [count, ~]   = histcounts(im_tcspc(lower + ind-1), 1:bin_factor:max_bin+1);
+               count = count(lt_start:lt_end);
+               ISM_lt(i,:)  = count./sum(count);
+           end
+           %set lower edge to last found puls 1
+           n_lower      = lower + ind(end);
+           %set new upper edge to lower plus interval length
+           upper        = min(n_lower + interval, n_events);
+       else
+           %set new searche boundarys. because nothing was found keep lower
+           %extend upper
+           n_lower      = lower;
+           upper        = min(upper + interval, n_events);
+
+       end
+       %set lower
+       lower        = n_lower;
+
+       if (mod(i,n_pixel_ISM/100) == 0)
+            waitbar(i/n_pixel_ISM,h)
+       end
+    end
+    close(h);
+    fprintf('lifetime fit \n');
+
+    %tail fit via pattern matching
+    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, lt_bin_l, tcspc_tail_l, max_lt);
+
+    %plot and save image
+    ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
+%     ISM_lt_img = ISM_lt_img(150:190,130:180);
+%     ISM_img = ISM_img(150:190,130:180);
+    lt_img_plot(ISM_lt_img.', ISM_img, c_greenred, lt_cut_off, [.5 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
+    
+    figure
+    histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < 20),linspace(0.01,max_lt,100),'Normalization','probability')
+end
+
+%% SOFI
+if (sofi)
+
+    interval        = round(1.1* max(max(sum_img)));
+    n_pixel_sum     = prod(sum_size);
+    SOFI_img    = zeros(n_pixel_sum, 1);
 
     h = waitbar(0,'binning');
     %find all photons in one ISM pixel, by seaching in an interval of max count
@@ -232,25 +305,17 @@ if (lifetime||sofi)
     im_posy     = im_posy(sort_index);
     im_posx     = im_posx(sort_index);
     
-    save_lower = zeros(n_pixel_ISM,1);
-    save_upper = zeros(n_pixel_ISM,1);
+    save_lower = zeros(n_pixel_sum,1);
+    save_upper = zeros(n_pixel_sum,1);
 
-    for i = 1:n_pixel_ISM
-       [x,y] = ind2sub(ISM_size,i);
-       ind = find(ISM_lin(lower:upper) == i);
+    for i = 1:n_pixel_sum
+       [x,y] = ind2sub(sum_size,i);
+       ind = find(sum_lin(lower:upper) == i);
        save_lower(i) = lower;
        save_upper(i) = upper;
        if ~isempty(ind)
-%            only do lifetime analysis when enought photons are there and
-%            falg is set
-           if(ISM_img(y,x) > lt_cut_off && lifetime)
-               [count, ~]   = histcounts(im_tcspc(lower + ind-1), 1:bin_factor:max_bin+1);
-               count = count(lt_start:lt_end);
-               count = count / sum(count);
-               ISM_lt(i,:)  = count;%(lt_start:lt_end);
-           end
 
-           if(sofi && x == 37 && y == 27)
+           if(x == 37 && y == 27)
 %                -1 ?
                f_time = im_time(lower + ind-1) + im_tcspc(lower + ind-1) * time_R;
                 
@@ -286,7 +351,8 @@ if (lifetime||sofi)
                 end
                 
                 [sof, ~, ~] = SOFIAnalysis(detector,2,ntime);
-                SOFI_ISM_img(i,:) = sof;
+                % TO DO sum here ?
+                SOFI_img(i,:) = sof;
 
            end
            %set lower edge to last found puls 1
@@ -310,33 +376,15 @@ if (lifetime||sofi)
     close(h);
     fprintf('lifetime fit \n');
 
-    %tail fit via pattern matching
-    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, lt_bin_l, tcspc_tail_l, max_lt);
-
     %plot and save image
-    ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
-%     ISM_lt_img = ISM_lt_img(150:190,130:180);
-%     ISM_img = ISM_img(150:190,130:180);
-    lt_img_plot(ISM_lt_img.', ISM_img, c_greenred, lt_cut_off, [.5 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
-    
-    figure
-    histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < 20),linspace(0.01,max_lt,100),'Normalization','probability')
+%     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
 end
 % figure
 % hold on
 % plot(ISM_lin, 1:n_events, 'b-')
 % plot( save_lower, 'r-')
 % plot( save_upper, 'g-')
-%% Confocal Image
-%generate confocal image
-[sum_img,~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
-%remoce dark count
-sum_img     = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
-
-%plot and save
-reso_line_conf = [[105 105]; [30 65]];
-img_plot(sum_img, spectrum, colf_name, 'confocal', 1, IM_R, reso_line_conf, 0, 1);
 %% Additional figures for controle
 
 % Normalised monoexponetial decay with background
