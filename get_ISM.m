@@ -4,8 +4,8 @@ close all
 clc
 
 lifetime    = 0;
-deconv      = 1;
-sofi        = 0;
+deconv      = 0;
+sofi        = 1;
 %% Loadind data
 % load('scimaps.mat');
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
@@ -154,7 +154,7 @@ n_batch = ceil(n_frames / batch_length);
 
 %fix ?
 if(n_batch * batch_length > n_frames)
-    n_batch = n_batch -1;
+    n_batch = n_batch - 1;
 end
 
 fprintf('Using %g sec frame lenght. Resulting in max %g frames per pixel\n', img_d, ceil(n_frames))
@@ -213,9 +213,10 @@ end
 
 if (lifetime||sofi)
 
-    interval    = round(1.1* max(max(ISM_img)));
-    n_pixel_ISM = prod(ISM_size);
-    ISM_lt      = zeros(n_pixel_ISM, lt_end-lt_start+1);
+    interval        = round(1.1* max(max(ISM_img)));
+    n_pixel_ISM     = prod(ISM_size);
+    ISM_lt          = zeros(n_pixel_ISM, lt_end-lt_start+1);
+    SOFI_ISM_img    = zeros(n_pixel_ISM, 1);
 
     h = waitbar(0,'binning');
     %find all photons in one ISM pixel, by seaching in an interval of max count
@@ -250,6 +251,7 @@ if (lifetime||sofi)
            end
 
            if(sofi && x == 37 && y == 27)
+%                -1 ?
                f_time = im_time(lower + ind-1) + im_tcspc(lower + ind-1) * time_R;
                 
                t_max = max(f_time);
@@ -257,7 +259,34 @@ if (lifetime||sofi)
 
                frame_time = t_min:img_d:t_max;
                frames = size(frame_time,2)-1;
+
                detector = zeros(23,1,frames);
+                for k = 1:n_pixl
+                    ind_chan = im_chan(lower + ind - 1);
+                    chan = im_chan(ind_chan);
+                    ind_chan = chan == i-1;
+                    tmp = f_time(ind_chan);
+                    
+                    [N,~] = histcounts(tmp,frame_time);
+                    
+                    detector(k+1,1,:) = N;
+                end
+                
+                %substact darkcount
+%                 detector = max(detector - dc.'*img_d,0);
+                
+                if(batch_length > frames)
+                    ntime = frames;
+                else
+                    ntime = batch_length;
+                end
+                
+                 if(n_batch == 1)
+                    ntime = frames;
+                end
+                
+                [sof, ~, ~] = SOFIAnalysis(detector,2,ntime);
+                SOFI_ISM_img(i,:) = sof;
 
            end
            %set lower edge to last found puls 1
