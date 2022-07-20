@@ -1,11 +1,14 @@
-%% 
+%%
+F = findall(0,'type','figure','tag','TMWWaitbar');
+delete(F)
 clear
 close all
 clc
 
-lifetime    = 1;
+
+lifetime    = 0;
 deconv      = 0;
-sofi        = 0;
+sofi        = 1;
 %% Loadind data
 % load('scimaps.mat');
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
@@ -81,6 +84,9 @@ SPAD_R = 23;
 %scan resolution step per pixel in µm
 IM_R = head.ImgHdr_PixResol;
 
+%aquisition time per scan pixel
+IM_dwell = head.ImgHdr_DwellTime;
+
 %ISM Binning UGO[1.02] PQ[1.04] UGO220302[1.01] 20nm[1.0075]
 ISM_binning = 1.0075;
 
@@ -132,21 +138,21 @@ tcspc_tail_l = (lt_end - lt_start) * lt_bin_l;
 % Max Lifetime in ns
 max_lt = 20;
 
-% SOFI Params
+%% SOFI Params
 
 %duration of one frames (image) in seconds for SOFI JE 100 mu sec
-img_d = 10e-5;
+img_d = 1e-6;
+
+%total number for frames per pixel
+n_frames = round(IM_dwell /img_d);
 
 %number of frames per batch
 batch_length = 500;
 
-%total number for frames per pixel
-n_frames = ceil(head.ImgHdr_DwellTime /img_d);
-
 % fix ?
 if n_frames < batch_length
     fprintf('more frames per batch than total frames per pixel. Setting batch size to n_frames\n')
-    batch_length = ceil(n_frames);
+    batch_length = n_frames;
 end
 
 %number of bathes with batch_length images
@@ -283,83 +289,84 @@ if (lifetime)
     
     figure
     histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < 20),linspace(0.01,max_lt,100),'Normalization','probability')
+
+    figure
+    hold on
+    plot(ISM_lin, 1:n_events, 'b-')
+    plot( save_lower, 'r-')
+    plot( save_upper, 'g-')
 end
-
-figure
-hold on
-plot(ISM_lin, 1:n_events, 'b-')
-plot( save_lower, 'r-')
-plot( save_upper, 'g-')
-
 %% SOFI
 if (sofi)
 
     interval        = round(1.1* max(max(sum_img)));
     n_pixel_sum     = prod(sum_size);
-    SOFI_img    = zeros(n_pixel_sum, 1);
+    SOFI_img        = zeros(n_pixel_sum, 1);
+    frame_times      = linspace(0, IM_dwell, n_frames + 1);
 
-    h = waitbar(0,'binning');
+    h = waitbar(0,'sofiing ?');
     %find all photons in one ISM pixel, by seaching in an interval of max count
-    %lengh + 1 
     lower = 1;
     upper = interval;
 
     % care y x könnten vertauscht sein
-    [ISM_lin, sort_index] = sort(ISM_lin);
+    [sum_lin, sort_index] = sort(sum_lin);
 
-    im_tcspc    = im_tcspc(sort_index);
-    im_time     = im_time(sort_index);
-    im_posy     = im_posy(sort_index);
-    im_posx     = im_posx(sort_index);
-    
-    save_lower = zeros(n_pixel_sum,1);
-    save_upper = zeros(n_pixel_sum,1);
+    sofi_tcspc  = im_tcspc(sort_index);
+    sofi_time   = im_time(sort_index);
+    sofi_chan   = im_chan(sort_index);
+
+    save_lower  = zeros(n_pixel_sum,1);
+    save_upper  = zeros(n_pixel_sum,1);
 
     for i = 1:n_pixel_sum
-       [x,y] = ind2sub(sum_size,i);
-       ind = find(sum_lin(lower:upper) == i);
-       save_lower(i) = lower;
-       save_upper(i) = upper;
+       [x,y]            = ind2sub(sum_size,i);
+       ind              = find(sum_lin(lower:upper) == i);
+       save_lower(i)    = lower;
+       save_upper(i)    = upper;
        if ~isempty(ind)
 
-           if(x == 37 && y == 27)
+           if(1)%x == 37 && y == 27)
 %                -1 ?
-               f_time = im_time(lower + ind-1) + im_tcspc(lower + ind-1) * time_R;
-                
-               t_max = max(f_time);
-               t_min = min(f_time);
+%               exact arrival time and detector channel of photons in
+%               current image pixel(frame)
+               f_time = sofi_time(lower + ind - 1) + sofi_tcspc(lower + ind-1) * time_R;
+               f_chan = sofi_chan(lower + ind - 1);
+               
+               f_time = f_time - min(f_time);
 
-               frame_time = t_min:img_d:t_max;
-               frames = size(frame_time,2)-1;
+%                t_max = max(f_time);
+%                t_min = min(f_time);
+% 
+%                frame_time = t_min:img_d:t_max;
+%                frames = size(frame_time,2)-1;
 
-               detector = zeros(23,1,frames);
+               detector = zeros(23, 1, n_frames);
                 for k = 1:n_pixl
-                    ind_chan = im_chan(lower + ind - 1);
-                    chan = im_chan(ind_chan);
-                    ind_chan = chan == i-1;
-                    tmp = f_time(ind_chan);
+                    ind_chan = f_chan == k - 1;
+                    tmp      = f_time(ind_chan);
                     
-                    [N,~] = histcounts(tmp,frame_time);
+                    [N,~]    = histcounts(tmp,frame_times);
                     
-                    detector(k+1,1,:) = N;
+                    detector(k,1,:) = N;
                 end
                 
                 %substact darkcount
 %                 detector = max(detector - dc.'*img_d,0);
                 
-                if(batch_length > frames)
-                    ntime = frames;
-                else
-                    ntime = batch_length;
-                end
-                
-                 if(n_batch == 1)
-                    ntime = frames;
-                end
-                
-                [sof, ~, ~] = SOFIAnalysis(detector,2,ntime);
+%                 if(batch_length > frames)
+%                     ntime = frames;
+%                 else
+%                     ntime = batch_length;
+%                 end
+%                 
+%                  if(n_batch == 1)
+%                     ntime = frames;
+%                 end
+%                 
+                [sof, ~, ~] = SOFIAnalysis(detector, 2, n_frames);
                 % TO DO sum here ?
-                SOFI_img(i,:) = sof;
+                SOFI_img(i,:) = sum(sof, 'all');
 
            end
            %set lower edge to last found puls 1
@@ -376,21 +383,24 @@ if (sofi)
        %set lower
        lower        = n_lower;
 
-       if (mod(i,n_pixel_ISM/100) == 0)
-            waitbar(i/n_pixel_ISM,h)
+       if (mod(i,n_pixel_sum/100) == 0)
+            waitbar(i/n_pixel_sum,h)
        end
     end
     close(h);
-    fprintf('lifetime fit \n');
+    fprintf('doing sofi \n');
 
     %plot and save image
-%     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
+    SOFI_img  = reshape(SOFI_img, sum_size);
+
+    img_plot(SOFI_img.', spectrum, 'sofi', 'sofi', 2, IM_R, reso_line_conf, 0, 0)
+
+    figure
+    hold on
+    plot(sum_lin, 1:n_events, 'b-')
+    plot( save_lower, 'r-')
+    plot( save_upper, 'g-')
 end
-% figure
-% hold on
-% plot(ISM_lin, 1:n_events, 'b-')
-% plot( save_lower, 'r-')
-% plot( save_upper, 'g-')
 
 %% Additional figures for controle
 
@@ -398,10 +408,10 @@ end
 pfun_monoexp = @(tau,x) exp(-x(:)./tau); 
 pfun_monoexpBG = @(tau,b,x)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x)./sum(pfun_monoexp(tau,x),1);
 
-figure
-[c_count, ~] = histcounts(im_tcspc, 1:max_bin+1);
-plot(c_count(1:tail_end))
-set(gca, 'YScale', 'log')
+% figure
+% [c_count, ~] = histcounts(im_tcspc, 1:max_bin+1);
+% plot(c_count(1:tail_end))
+% set(gca, 'YScale', 'log')
 
 % hex_plot(pixel_int.',hot)
 % plot_pixeldecay(im_tcspc,im_chan);
@@ -420,22 +430,22 @@ set(gca, 'YScale', 'log')
 % taus    = [5, 12];
 % lim     = [0 0; 25 25];
 
-[count, ~]   = histcounts(im_tcspc, 1:bin_factor:max_bin+1);
-y_tail =  count(lt_start:lt_end);
-y_tail = y_tail./sum(y_tail);
-[over_all_lt,over_all_back]  = lt_patternMatching(y_tail, lt_bin_l, tcspc_tail_l, max_lt);
-disp(over_all_lt)
-
-xx = 0:(lt_end-lt_start);
-tcspc_t = 0:lt_bin_l:tcspc_tail_l;
-yy = pfun_monoexpBG(over_all_lt,over_all_back,tcspc_t);
-figure
-hold on
-% [c_count, ~] = histcounts(y, 1:max_bin+1);
-plot(y_tail)
-plot(yy.')
-legend('data','pattern Matching')
-set(gca, 'YScale', 'log')
+% [count, ~]   = histcounts(im_tcspc, 1:bin_factor:max_bin+1);
+% y_tail =  count(lt_start:lt_end);
+% y_tail = y_tail./sum(y_tail);
+% [over_all_lt,over_all_back]  = lt_patternMatching(y_tail, lt_bin_l, tcspc_tail_l, max_lt);
+% disp(over_all_lt)
+% 
+% xx = 0:(lt_end-lt_start);
+% tcspc_t = 0:lt_bin_l:tcspc_tail_l;
+% yy = pfun_monoexpBG(over_all_lt,over_all_back,tcspc_t);
+% figure
+% hold on
+% % [c_count, ~] = histcounts(y, 1:max_bin+1);
+% plot(y_tail)
+% plot(yy.')
+% legend('data','pattern Matching')
+% set(gca, 'YScale', 'log')
 
 % [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 1,1);
 
