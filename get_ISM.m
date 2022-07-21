@@ -141,7 +141,7 @@ max_lt = 20;
 %% SOFI Params
 
 %duration of one frames (image) in seconds for SOFI JE 100 mu sec
-img_d = 1e-6;
+img_d = 1e-4;
 
 %total number for frames per pixel
 n_frames = round(IM_dwell /img_d);
@@ -269,7 +269,6 @@ if (lifetime)
 %            set new searche boundarys. because nothing was found keep
 %            lower extend upper
            upper    = min(upper + interval, n_events);
-
        end
        if (mod(i,n_pixel_ISM/100) == 0)
             waitbar(i/n_pixel_ISM,h)
@@ -326,7 +325,7 @@ if (sofi)
        save_upper(i)    = upper;
        if ~isempty(ind)
 
-           if(1)%x == 37 && y == 27)
+           if(1)%x == 38 && y == 27)
 %                -1 ?
 %               exact arrival time and detector channel of photons in
 %               current image pixel(frame)
@@ -350,24 +349,11 @@ if (sofi)
                     
                     detector(k,1,:) = N;
                 end
-                
-                %substact darkcount
-%                 detector = max(detector - dc.'*img_d,0);
-                
-%                 if(batch_length > frames)
-%                     ntime = frames;
-%                 else
-%                     ntime = batch_length;
-%                 end
-%                 
-%                  if(n_batch == 1)
-%                     ntime = frames;
-%                 end
-%                 
-                [sof, ~, ~] = SOFIAnalysis(detector, 2, n_frames);
+           
+                [sof, ~] = SOFIAnalysis(detector, 2, n_frames);
+                zero_lagtime = var(detector, 0, 3);
                 % TO DO sum here ?
-                SOFI_img(i,:) = sum(sof, 'all');
-
+                SOFI_img(i,:) = sum(sof + zero_lagtime, 'all');
            end
            %set lower edge to last found puls 1
            n_lower      = lower + ind(end);
@@ -378,7 +364,6 @@ if (sofi)
            %extend upper
            n_lower      = lower;
            upper        = min(upper + interval, n_events);
-
        end
        %set lower
        lower        = n_lower;
