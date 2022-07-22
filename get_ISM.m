@@ -1,16 +1,14 @@
-%%
+%% Clear shit  up
 F = findall(0,'type','figure','tag','TMWWaitbar');
 delete(F)
 clear
 close all
 clc
 
-
 lifetime    = 0;
 deconv      = 0;
 sofi        = 1;
 %% Loadind data
-% load('scimaps.mat');
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
 sp1     = 1:255/7:256;
 sp2     = [[0 0 0]; [0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]; [1 0 1]];
@@ -162,7 +160,6 @@ end
 fprintf('Using %g ms frame lenght. Resulting in max %g frames per pixel\n', img_d*1e3, ceil(n_frames))
 fprintf('With %g frames per batch. Resulting in %g batches per pixel\n', batch_length, n_batch)
 
-
 %number of events
 n_events = numel(im_posx);
 
@@ -206,11 +203,11 @@ img_plot(sum_img, spectrum, colf_name, 'confocal', 1, IM_R, reso_line_conf, 0, 1
 %23. Thus darkcount = sum(dc)
 ISM_img  = max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0);
 
+%plot and save
 reso_line_ISM = [[107 107]; [30 65]];
 img_plot(ISM_img, spectrum, ISM_name, 'ISM', 1, IM_R, reso_line_ISM, 0, 1);
 
 %% manuel lucy Richerson decon
-
 if(deconv)
     PSF_file = matfile('PSF.m');
     psf = PSF_file.im;
@@ -226,11 +223,11 @@ if(deconv)
                 sb_lenght = 1,IM_R = IM_R,...
                 reso = 0, save = 1);
 end
-%% Lifetime Image
 
+%% Lifetime Image
 if (lifetime)
 
-    interval        = round(1.1* max(max(ISM_img)));
+    interval        = ceil(1.01* max(max(ISM_img)));
     n_pixel_ISM     = prod(ISM_size);
     ISM_lt          = zeros(n_pixel_ISM, lt_end-lt_start+1);
 
@@ -280,8 +277,6 @@ if (lifetime)
 
     %plot and save image
     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
-%     ISM_lt_img = ISM_lt_img(150:190,130:180);
-%     ISM_img = ISM_img(150:190,130:180);
     lt_img_plot(ISM_lt_img.', ISM_img, c_greenred, lt_cut_off, [.5 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
     
     figure
@@ -293,16 +288,15 @@ if (lifetime)
     plot( save_lower, 'r-')
     plot( save_upper, 'g-')
 end
+
 %% SOFI
 if (sofi)
 
-    interval        = round(1.1* max(max(sum_img)));
+    interval        = ceil(1.01* max(max(sum_img)));
     n_pixel_sum     = prod(sum_size);
     SOFI_img        = zeros(n_pixel_sum, 1);
     SOFI_ism        = zeros(n_pixel_sum, 1);
     frame_times     = linspace(0, IM_dwell, n_frames + 1);
-
-%     svLinInd        = sub2ind(sum_size,round(sv(2,:)),round(sv(1,:)));
 
     h = waitbar(0,'sofiing ?');
     %find all photons in one ISM pixel, by seaching in an interval of max count
@@ -322,8 +316,8 @@ if (sofi)
     for i = 1:n_pixel_sum
        [y,x]            = ind2sub(sum_size,i);
        ind              = find(sum_lin(lower:upper) == i);
-       save_lower(i)    = lower;
-       save_upper(i)    = upper;
+%        save_lower(i)    = lower;
+%        save_upper(i)    = upper;
        if ~isempty(ind)
 
            if(1)%x == 23 && y == 50)
@@ -375,6 +369,7 @@ if (sofi)
            n_lower      = lower;
            upper        = min(upper + interval, n_events);
        end
+
        %set lower
        lower        = n_lower;
 
@@ -392,11 +387,11 @@ if (sofi)
     img_plot(SOFI_ism, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, reso_line_conf, 0, 0);
     img_plot(SOFI_img, spectrum, 'sofi', 'sofi', 1, IM_R, reso_line_conf, 0, 0);
 
-    figure
-    hold on
-    plot(sum_lin, 1:n_events, 'b-')
-    plot( save_lower, 'r-')
-    plot( save_upper, 'g-')
+%     figure
+%     hold on
+%     plot(sum_lin, 1:n_events, 'b-')
+%     plot( save_lower, 'r-')
+%     plot( save_upper, 'g-')
 end
 
 %% Additional figures for controle
