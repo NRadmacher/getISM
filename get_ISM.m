@@ -29,7 +29,7 @@ c_bluered   = interp1(br1, br2, lambda);
 c_green     = interp1(gl, g2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220718\qdots_em625nm_005.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220722\qdots_em585nm_007.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220708\irf_ex470nm_005.ptu';
 
@@ -141,7 +141,7 @@ max_lt = 20;
 %% SOFI Params
 
 %duration of one frames (image) in seconds for SOFI JE 100 mu sec
-img_d = 1e-4;
+img_d = 1e-3;
 
 %total number for frames per pixel
 n_frames = round(IM_dwell /img_d);
@@ -163,7 +163,7 @@ if(n_batch * batch_length > n_frames)
     n_batch = n_batch - 1;
 end
 
-fprintf('Using %g sec frame lenght. Resulting in max %g frames per pixel\n', img_d, ceil(n_frames))
+fprintf('Using %g ms frame lenght. Resulting in max %g frames per pixel\n', img_d*1e3, ceil(n_frames))
 fprintf('With %g frames per batch. Resulting in %g batches per pixel\n', batch_length, n_batch)
 
 
@@ -180,6 +180,8 @@ sv_file = matfile('shift_vector.m');
 sv = sv_file.shift_vector;
 shift_x     = sv(1, im_pix+1).';
 shift_y     = sv(2, im_pix+1).';
+
+sofi_sv = round(sv);
 
 %apply ISM reassigment vektor
 ISM_posx    = im_posx + shift_x;
@@ -301,7 +303,10 @@ if (sofi)
     interval        = round(1.1* max(max(sum_img)));
     n_pixel_sum     = prod(sum_size);
     SOFI_img        = zeros(n_pixel_sum, 1);
-    frame_times      = linspace(0, IM_dwell, n_frames + 1);
+    SOFI_ism        = zeros(n_pixel_sum, 1);
+    frame_times     = linspace(0, IM_dwell, n_frames + 1);
+
+%     svLinInd        = sub2ind(sum_size,round(sv(2,:)),round(sv(1,:)));
 
     h = waitbar(0,'sofiing ?');
     %find all photons in one ISM pixel, by seaching in an interval of max count
@@ -319,13 +324,13 @@ if (sofi)
     save_upper  = zeros(n_pixel_sum,1);
 
     for i = 1:n_pixel_sum
-       [x,y]            = ind2sub(sum_size,i);
+       [y,x]            = ind2sub(sum_size,i);
        ind              = find(sum_lin(lower:upper) == i);
        save_lower(i)    = lower;
        save_upper(i)    = upper;
        if ~isempty(ind)
 
-           if(1)%x == 38 && y == 27)
+           if(1)%x == 23 && y == 50)
 %                -1 ?
 %               exact arrival time and detector channel of photons in
 %               current image pixel(frame)
@@ -352,9 +357,18 @@ if (sofi)
            
                 [sof, ~] = SOFIAnalysis(detector, 2, n_frames);
                 zero_lagtime = var(detector, 0, 3);
+                spad_sofi = sof + zero_lagtime;
                 % TO DO sum here ?
-                SOFI_img(i,:) = sum(sof + zero_lagtime, 'all');
+                SOFI_img(i,:) = sum(spad_sofi, 'all');
+
+                sv_x = max(min(x + sofi_sv(1,:), s_pixl_x), 1);
+                sv_y = max(min(y + sofi_sv(2,:), s_pixl_y), 1);
+
+                lin_shift = sub2ind(sum_size, sv_y, sv_x);
+
+                SOFI_ism(lin_shift) = SOFI_ism(lin_shift) + spad_sofi;
            end
+
            %set lower edge to last found puls 1
            n_lower      = lower + ind(end);
            %set new upper edge to lower plus interval length
@@ -377,8 +391,10 @@ if (sofi)
 
     %plot and save image
     SOFI_img  = reshape(SOFI_img, sum_size);
+    SOFI_ism  = reshape(SOFI_ism, sum_size);
 
-    img_plot(SOFI_img.', spectrum, 'sofi', 'sofi', 2, IM_R, reso_line_conf, 0, 0)
+    img_plot(SOFI_img, spectrum, 'sofi', 'sofi', 1, IM_R, reso_line_conf, 0, 0);
+    img_plot(SOFI_ism, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, reso_line_conf, 0, 0);
 
     figure
     hold on
