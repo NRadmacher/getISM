@@ -102,10 +102,6 @@ max_bin = head.max_bin;
 %Magnification at detector
 M = 200;
 
-%interval lenght to find tscpc times corresponding to the same image Pixel
-%!!FIX NEEDED!!
-interval = 8000;
-
 % TCSPC binning factor
 bin_factor = 10;
 
@@ -393,8 +389,8 @@ if (sofi)
     SOFI_img  = reshape(SOFI_img, sum_size);
     SOFI_ism  = reshape(SOFI_ism, sum_size);
 
-    img_plot(SOFI_img, spectrum, 'sofi', 'sofi', 1, IM_R, reso_line_conf, 0, 0);
     img_plot(SOFI_ism, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, reso_line_conf, 0, 0);
+    img_plot(SOFI_img, spectrum, 'sofi', 'sofi', 1, IM_R, reso_line_conf, 0, 0);
 
     figure
     hold on
