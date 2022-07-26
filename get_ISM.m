@@ -319,50 +319,52 @@ if (sofi)
 %        save_upper(i)    = upper;
        if ~isempty(ind)
 
-           if(x == 123 && y == 51)
-
-%                -1 ?
-%               exact arrival time and detector channel of photons in
-%               current image pixel(frame)
+           if(x == 127 && y == 55)
+    
+    %                -1 ?
+    %               exact arrival time and detector channel of photons in
+    %               current image pixel(frame)
                f_time = sofi_time(lower + ind - 1);% + sofi_tcspc(lower + ind-1) * time_R;
                f_chan = sofi_chan(lower + ind - 1);
                
                f_time = f_time - min(f_time);
-
-%                t_max = max(f_time);
-%                t_min = min(f_time);
-% 
-%                frame_time = t_min:img_d:t_max;
-%                frames = size(frame_time,2)-1;
-
+    
+               f_time = combine_photon_time(f_time, 10);
+    
+    %                t_max = max(f_time);
+    %                t_min = min(f_time);
+    % 
+    %                frame_time = t_min:img_d:t_max;
+    %                frames = size(frame_time,2)-1;
+    
                detector = zeros(23, 1, n_frames);
-            for k = 1:n_pixl
-                ind_chan = f_chan == k - 1;
-                tmp      = f_time(ind_chan);
-                
-                [N,~]    = histcounts(tmp,frame_times);
-                
-                detector(k,1,:) = N;
+                for k = 1:n_pixl
+                    ind_chan = f_chan == k - 1;
+                    tmp      = f_time(ind_chan);
+                    
+                    [N,~]    = histcounts(tmp,frame_times);
+                    
+                    detector(k,1,:) = N;
+                end
+           
+                [sof, ~] = SOFIAnalysis(detector, 2, n_frames);
+                zero_lagtime = var(detector, 0, 3);
+                spad_sofi = sof + zero_lagtime;
+                % TO DO sum here ?
+                SOFI_img(i,:) = sum(spad_sofi, 'all');
+    
+                sv_x = max(min(x + sofi_sv(1,:), s_pixl_x), 1);
+                sv_y = max(min(y + sofi_sv(2,:), s_pixl_y), 1);
+    
+                lin_shift = sub2ind(sum_size, sv_y, sv_x);
+    
+                SOFI_ism(lin_shift) = SOFI_ism(lin_shift) + spad_sofi;
             end
-       
-            [sof, ~] = SOFIAnalysis(detector, 2, n_frames);
-            zero_lagtime = var(detector, 0, 3);
-            spad_sofi = sof + zero_lagtime;
-            % TO DO sum here ?
-            SOFI_img(i,:) = sum(spad_sofi, 'all');
-
-            sv_x = max(min(x + sofi_sv(1,:), s_pixl_x), 1);
-            sv_y = max(min(y + sofi_sv(2,:), s_pixl_y), 1);
-
-            lin_shift = sub2ind(sum_size, sv_y, sv_x);
-
-            SOFI_ism(lin_shift) = SOFI_ism(lin_shift) + spad_sofi;
-           end
-
-           %set lower edge to last found puls 1
-           n_lower      = lower + ind(end);
-           %set new upper edge to lower plus interval length
-           upper        = min(n_lower + interval, n_events);
+    
+               %set lower edge to last found puls 1
+               n_lower      = lower + ind(end);
+               %set new upper edge to lower plus interval length
+               upper        = min(n_lower + interval, n_events);
        else
            %set new searche boundarys. because nothing was found keep lower
            %extend upper
