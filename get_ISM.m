@@ -319,7 +319,7 @@ if (sofi)
 %        save_upper(i)    = upper;
        if ~isempty(ind)
 
-           if(x == 127 && y == 55)
+           if(1)%(x == 127 && y == 55)
     
     %                -1 ?
     %               exact arrival time and detector channel of photons in
