@@ -5,9 +5,9 @@ clear
 close all
 clc
 
-lifetime    = 0;
+lifetime    = 1;
 deconv      = 0;
-sofi        = 1;
+sofi        = 0;
 %% Loadind data
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
 sp1     = 1:255/7:256;
@@ -27,7 +27,7 @@ c_bluered   = interp1(br1, br2, lambda);
 c_green     = interp1(gl, g2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220726\qdots_em605nm_012.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220802\qdots_em605nm_003.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220708\irf_ex470nm_005.ptu';
 
@@ -104,11 +104,11 @@ M = 200;
 bin_factor = 10;
 
 %minimum numbers of photons to calculate lifetime
-lt_cut_off = 100;
+lt_cut_off = 20;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm;
-tail_start = 1550;
+tail_start = 1500;
 
 % tcspc tail_end in tcspc bin number
 tail_end = max_bin - 100;
@@ -129,7 +129,7 @@ lt_end      = floor(tail_end / bin_factor); %floor or ciel?
 tcspc_tail_l = (lt_end - lt_start) * lt_bin_l;
 
 % Max Lifetime in ns
-max_lt = 30;
+max_lt = 40;
 
 %% SOFI Params
 
@@ -276,10 +276,14 @@ if (lifetime)
 
     %plot and save image
     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
-    lt_img_plot(ISM_lt_img, ISM_img, c_greenred, lt_cut_off, [.5 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
+    lt_img_plot(ISM_lt_img, ISM_img, c_greenred, lt_cut_off, [2.5 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
     
-    figure
-    histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < max_lt),linspace(0.01,max_lt,100),'Normalization','probability')
+    h = figure;
+    ax = axes(h);
+    histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < max_lt),linspace(0.01,max_lt,100),'Normalization','count')
+
+    file_name = append(LT_name, '_dist', '.png');
+    exportgraphics(ax, file_name,'Resolution',600)
 % 
 %     figure
 %     hold on
@@ -403,9 +407,12 @@ pfun_monoexp = @(tau,x) exp(-x(:)./tau);
 pfun_monoexpBG = @(tau,b,x)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x)./sum(pfun_monoexp(tau,x),1);
 
 figure
+xx = 1:tail_end;
 [c_count, ~] = histcounts(im_tcspc, 1:max_bin+1);
-plot(c_count(1:tail_end))
+plot(xx*tcspc_bin_l,  c_count(1:tail_end))
 set(gca, 'YScale', 'log')
+xlabel('time [ns]')
+ylabel('count')
 
 % hex_plot(pixel_int.',hot)
 % plot_pixeldecay(im_tcspc,im_chan);
@@ -430,16 +437,18 @@ y_tail = y_tail./sum(y_tail);
 [over_all_lt,over_all_back]  = lt_patternMatching(y_tail, lt_bin_l, tcspc_tail_l, max_lt);
 disp(over_all_lt)
 
-xx = 0:(lt_end-lt_start);
+xx = lt_start:lt_end;
 tcspc_t = 0:lt_bin_l:tcspc_tail_l;
 yy = pfun_monoexpBG(over_all_lt,over_all_back,tcspc_t);
 figure
 hold on
 % [c_count, ~] = histcounts(y, 1:max_bin+1);
-plot(xx, y_tail)
-plot(xx, yy.')
+plot(xx*lt_bin_l, y_tail)
+plot(xx*lt_bin_l, yy.')
 legend('data','pattern Matching')
 set(gca, 'YScale', 'log')
+xlabel('time [ns]')
+ylabel('count')
 
 % [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 1,1);
 

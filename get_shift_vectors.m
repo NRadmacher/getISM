@@ -4,7 +4,11 @@ function get_shift_vectors()
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220302\tetra_beads_004.ptu';
 fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220420\q_dot_003.ptu'; %qdot 20nm
 fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220424\q_dot_008.ptu';
+
+%good sv unit 08.07.2022
 fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220309\tetra_beads_015.ptu';
+
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220726\qdots_em605nm_007.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 %good shift vektors with pinhole 220302 004
 % fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220314\homer_bassoon_006.ptu';
