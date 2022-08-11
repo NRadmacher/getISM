@@ -128,11 +128,18 @@ lt_end      = floor(tail_end / bin_factor); %floor or ciel?
 % tcspc_tail_l = (tail_end - tail_start) * tcspc_bin_l;
 tcspc_tail_l = (lt_end - lt_start) * lt_bin_l;
 
+% TCSPC tail start in ns
+tcspc_start = tail_start * tcspc_bin_l;
+
 % Max Lifetime in ns
 max_lt = 40;
 
+% go from bin numner to ns
+im_tcspc = im_tcspc * tcspc_bin_l;
+
 %% Multiple tau scale
 
+m_tau = 0;
 if(m_tau)
     % bin size
     tau_s = @(delta, i) delta*2.^(floor(i/8));
@@ -144,13 +151,14 @@ if(m_tau)
     geometric_const = 2^(3/8)*(nthroot(2,8) - 1);
     N = floor(8 * log2(tcspc_tail_l/lt_bin_l * geometric_const));
     
-    % tcspc bins and bin edges according to multi tau scale
+    % tcspc bins according to multi tau scale
     tcspc_bin   = tau_s(tcspc_dt, 1:N);
+    % and bin edges
     tcspc_t     = cumsum(tcspc_bin);
 
 else
-    tcspc_t     = 0:lt_bin_l:tcspc_tail_l;
     tcspc_bin   = lt_bin_l;
+    tcspc_t     = 0:lt_bin_l:tcspc_tail_l;
 end
 
 %% SOFI Params
@@ -430,8 +438,8 @@ pfun_monoexpBG = @(tau,b,x)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x)./sum(pfun_m
 
 figure
 xx = 1:tail_end;
-[c_count, ~] = histcounts(im_tcspc, 1:max_bin+1);
-plot(xx*tcspc_bin_l,  c_count(1:tail_end))
+[count, edges]   = histcounts(im_tcspc, tcspc_t + tcspc_start);
+plot(tcspc_t(1:end-1),  count)
 set(gca, 'YScale', 'log')
 xlabel('time [ns]')
 ylabel('count')
@@ -453,10 +461,10 @@ ylabel('count')
 % taus    = [5, 12];
 % lim     = [0 0; 25 25];
 
-[count, ~]   = histcounts(im_tcspc, 1:bin_factor:max_bin+1);
+[count, ~]   = histcounts(im_tcspc, tcspc_t + tcspc_start);
 y_tail =  count(lt_start:lt_end);
 y_tail = y_tail./sum(y_tail);
-[over_all_lt,over_all_back]  = lt_patternMatching(y_tail, lt_bin_l, tcspc_tail_l, max_lt, 1);
+[over_all_lt,over_all_back]  = lt_patternMatching(y_tail, tcspc_t, tcspc_bin, max_lt);
 disp(over_all_lt)
 
 xx = lt_start:lt_end;
