@@ -5,7 +5,7 @@ clear
 close all
 clc
 
-lifetime    = 1;
+lifetime    = 0;
 deconv      = 0;
 sofi        = 0;
 %% Loadind data
@@ -62,7 +62,7 @@ im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 
 %get IRF to set tail for tailfit
 % [fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
-%% Parameters and magic numbers(please fix)
+%% Parameters and magic numbers(please fix) AND FIX NAMEN FÜR TCSPC
 %number of pixels of the detector
 n_pixl = 23;
 
@@ -97,13 +97,13 @@ rep_time = 1/head.TTResult_SyncRate;
 %max number of tcspc bins %%CARE
 max_bin = head.max_bin;
 
-%Magnification at detector
+% Magnification at detector
 M = 200;
 
 % TCSPC binning factor
 bin_factor = 10;
 
-%minimum numbers of photons to calculate lifetime
+% minimum numbers of photons to calculate lifetime
 lt_cut_off = 20;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
@@ -130,6 +130,28 @@ tcspc_tail_l = (lt_end - lt_start) * lt_bin_l;
 
 % Max Lifetime in ns
 max_lt = 40;
+
+%% Multiple tau scale
+
+if(m_tau)
+    % bin size
+    tau_s = @(delta, i) delta*2.^(floor(i/8));
+    
+    % number of bin requierd for given tau scale. approx sum 2^(floor(i/8))
+    % with sum 2^(i/8-1/2) and use geometric sum
+    
+    % constant form geometric series
+    geometric_const = 2^(3/8)*(nthroot(2,8) - 1);
+    N = floor(8 * log2(tcspc_tail_l/lt_bin_l * geometric_const));
+    
+    % tcspc bins and bin edges according to multi tau scale
+    tcspc_bin   = tau_s(tcspc_dt, 1:N);
+    tcspc_t     = cumsum(tcspc_bin);
+
+else
+    tcspc_t     = 0:lt_bin_l:tcspc_tail_l;
+    tcspc_bin   = lt_bin_l;
+end
 
 %% SOFI Params
 
@@ -272,7 +294,7 @@ if (lifetime)
     fprintf('lifetime fit \n');
 
     %tail fit via pattern matching
-    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, lt_bin_l, tcspc_tail_l, max_lt);
+    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, lt_bin_l, tcspc_tail_l, max_lt, 0);
 
     %plot and save image
     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
@@ -434,7 +456,7 @@ ylabel('count')
 [count, ~]   = histcounts(im_tcspc, 1:bin_factor:max_bin+1);
 y_tail =  count(lt_start:lt_end);
 y_tail = y_tail./sum(y_tail);
-[over_all_lt,over_all_back]  = lt_patternMatching(y_tail, lt_bin_l, tcspc_tail_l, max_lt);
+[over_all_lt,over_all_back]  = lt_patternMatching(y_tail, lt_bin_l, tcspc_tail_l, max_lt, 1);
 disp(over_all_lt)
 
 xx = lt_start:lt_end;
@@ -448,7 +470,7 @@ plot(xx*lt_bin_l, yy.')
 legend('data','pattern Matching')
 set(gca, 'YScale', 'log')
 xlabel('time [ns]')
-ylabel('count')
+ylabel('normalized count')
 
 % [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 1,1);
 
