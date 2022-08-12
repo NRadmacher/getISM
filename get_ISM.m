@@ -113,6 +113,9 @@ tail_start = 1500;
 % tcspc tail_end in tcspc bin number
 tail_end = max_bin - 100;
 
+% tcspc tail lenght in tcspc bin number
+tail_l = tail_end - tail_start;
+
 % TCSPC bin length in ns
 tcspc_bin_l = time_R * 1e9;
 
@@ -134,12 +137,9 @@ tcspc_start = tail_start * tcspc_bin_l;
 % Max Lifetime in ns
 max_lt = 40;
 
-% go from bin numner to ns
-im_tcspc = im_tcspc * tcspc_bin_l;
-
 %% Multiple tau scale
 
-m_tau = 0;
+m_tau = 1;
 if(m_tau)
     % bin size
     tau_s = @(delta, i) delta*2.^(floor(i/8));
@@ -149,16 +149,24 @@ if(m_tau)
     
     % constant form geometric series
     geometric_const = 2^(3/8)*(nthroot(2,8) - 1);
-    N = floor(8 * log2(tcspc_tail_l/lt_bin_l * geometric_const));
+    N = floor(8 * log2(tail_l/bin_factor * geometric_const));
     
     % tcspc bins according to multi tau scale
-    tcspc_bin   = tau_s(tcspc_dt, 1:N);
+    tcspc_bin   = tau_s(bin_factor, 1:N);
     % and bin edges
-    tcspc_t     = cumsum(tcspc_bin);
+    tcspc_t     = tail_start - tcspc_bin(1) + cumsum(tcspc_bin);
+
+    % and in ns for tail fit
+    tail_bin    = tcspc_bin_l*tcspc_bin(1:end-1);
+    tail_t      = tcspc_bin_l*tcspc_t(1:end-1);
 
 else
-    tcspc_bin   = lt_bin_l;
-    tcspc_t     = 0:lt_bin_l:tcspc_tail_l;
+    tcspc_bin   = bin_factor;
+    tcspc_t     = tail_start:bin_factor:tail_end;
+
+        % and in ns for tail fit
+    tail_bin    = tcspc_bin_l*tcspc_bin;
+    tail_t      = tcspc_bin_l*tcspc_t(1:end-1);
 end
 
 %% SOFI Params
@@ -433,16 +441,19 @@ end
 %% Additional figures for controle
 
 % Normalised monoexponetial decay with background
-pfun_monoexp = @(tau,x) exp(-x(:)./tau); 
-pfun_monoexpBG = @(tau,b,x)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x)./sum(pfun_monoexp(tau,x),1);
+pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
+pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
 figure
-xx = 1:tail_end;
-[count, edges]   = histcounts(im_tcspc, tcspc_t + tcspc_start);
-plot(tcspc_t(1:end-1),  count)
+[count, edges]   = histcounts(im_tcspc, tcspc_t);
+plot(tail_t,  count)
 set(gca, 'YScale', 'log')
 xlabel('time [ns]')
 ylabel('count')
+
+count = count./sum(count);
+[over_all_lt,over_all_back]  = lt_patternMatching(count,tail_t, tail_bin, max_lt);
+disp(over_all_lt)
 
 % hex_plot(pixel_int.',hot)
 % plot_pixeldecay(im_tcspc,im_chan);
@@ -461,20 +472,12 @@ ylabel('count')
 % taus    = [5, 12];
 % lim     = [0 0; 25 25];
 
-[count, ~]   = histcounts(im_tcspc, tcspc_t + tcspc_start);
-y_tail =  count(lt_start:lt_end);
-y_tail = y_tail./sum(y_tail);
-[over_all_lt,over_all_back]  = lt_patternMatching(y_tail, tcspc_t, tcspc_bin, max_lt);
-disp(over_all_lt)
-
-xx = lt_start:lt_end;
-tcspc_t = 0:lt_bin_l:tcspc_tail_l;
-yy = pfun_monoexpBG(over_all_lt,over_all_back,tcspc_t);
 figure
+plot(tail_t, count)
 hold on
-% [c_count, ~] = histcounts(y, 1:max_bin+1);
-plot(xx*lt_bin_l, y_tail)
-plot(xx*lt_bin_l, yy.')
+
+yy = pfun_monoexpBG(over_all_lt,over_all_back,tail_t,tail_bin);
+plot(tail_t, yy.')
 legend('data','pattern Matching')
 set(gca, 'YScale', 'log')
 xlabel('time [ns]')
