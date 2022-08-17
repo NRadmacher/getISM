@@ -5,7 +5,7 @@ clear
 close all
 clc
 
-lifetime    = 0;
+lifetime    = 1;
 deconv      = 0;
 sofi        = 0;
 %% Loadind data
@@ -27,7 +27,7 @@ c_bluered   = interp1(br1, br2, lambda);
 c_green     = interp1(gl, g2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220802\qdots_em605nm_003.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220815\neurons_g1_1_green_013.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220708\irf_ex470nm_005.ptu';
 
@@ -61,7 +61,7 @@ im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 [dc, bin_dc] = get_DC(dcname,0);
 
 %get IRF to set tail for tailfit
-% [fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
+[fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
 %% Parameters and magic numbers(please fix) AND FIX NAMEN FÜR TCSPC
 %number of pixels of the detector
 n_pixl = 23;
@@ -101,14 +101,14 @@ max_bin = head.max_bin;
 M = 200;
 
 % TCSPC binning factor
-bin_factor = 10;
+bin_factor = 20;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 20;
+lt_cut_off = 0;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm;
-tail_start = 1500;
+tail_start = 750;
 
 % tcspc tail_end in tcspc bin number
 tail_end = max_bin - 100;
@@ -135,11 +135,15 @@ tcspc_tail_l = (lt_end - lt_start) * lt_bin_l;
 tcspc_start = tail_start * tcspc_bin_l;
 
 % Max Lifetime in ns
-max_lt = 40;
+max_lt = 8;
+
+% Normalised monoexponetial decay with background
+pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
+pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
 %% Multiple tau scale
 
-m_tau = 1;
+m_tau = 0;
 if(m_tau)
     % bin size
     tau_s = @(delta, i) delta*2.^(floor(i/8));
@@ -154,7 +158,7 @@ if(m_tau)
     % tcspc bins according to multi tau scale
     tcspc_bin   = tau_s(bin_factor, 1:N);
     % and bin edges
-    tcspc_t     = tail_start - tcspc_bin(1) + cumsum(tcspc_bin);
+    tcspc_t     = tail_start + cumsum([0, tcspc_bin(1:end-1)]);
 
     % and in ns for tail fit
     tail_bin    = tcspc_bin_l*tcspc_bin(1:end-1);
@@ -164,11 +168,18 @@ else
     tcspc_bin   = bin_factor;
     tcspc_t     = tail_start:bin_factor:tail_end;
 
-        % and in ns for tail fit
+    % and in ns for tail fit
     tail_bin    = tcspc_bin_l*tcspc_bin;
     tail_t      = tcspc_bin_l*tcspc_t(1:end-1);
 end
 
+%% Dark Count
+
+bin_dc = sum(bin_dc, 1);
+
+bin_dc = movsum(bin_dc, [0 bin_factor-1]);
+
+bin_dc = bin_dc(tcspc_t);
 %% SOFI Params
 
 %duration of one frames (image) in seconds for SOFI JE 100 mu sec
@@ -214,8 +225,8 @@ shift_y     = sv(2, im_pix+1).';
 sofi_sv = round(sv);
 
 %apply ISM reassigment vektor
-ISM_posx    = im_posx + shift_x;
-ISM_posy    = im_posy + shift_y;
+ISM_posx    = im_posx - shift_x;
+ISM_posy    = im_posy - shift_y;
 
 %counts per detector pixel
 [pixel_int, ~]   = histcounts(im_pix,0:23);
@@ -238,11 +249,11 @@ img_plot(sum_img, spectrum, colf_name, 'confocal', 1, IM_R, reso_line_conf, 0, 1
 %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
 %23 pixels, either the same pixel in the sampel or a shifted on. But always
 %23. Thus darkcount = sum(dc)
-ISM_img  = max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0);
+% ISM_img  = max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0);
 
 %plot and save
 reso_line_ISM = [[107 107]; [30 65]];
-img_plot(ISM_img, spectrum, ISM_name, 'ISM', 1, IM_R, reso_line_ISM, 0, 1);
+img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), spectrum, ISM_name, 'ISM', 1, IM_R, reso_line_ISM, 0, 1);
 
 %% manuel lucy Richerson decon
 if(deconv)
@@ -266,7 +277,14 @@ if (lifetime)
 
     interval        = ceil(1.01* max(max(ISM_img)));
     n_pixel_ISM     = prod(ISM_size);
-    ISM_lt          = zeros(n_pixel_ISM, lt_end-lt_start+1);
+    ISM_lt          = zeros(n_pixel_ISM, numel(tail_t));
+    ISM_lt_amp      = zeros(n_pixel_ISM, 4);
+
+    % generate decay patterns
+
+    pattern_tau = [1.37 2.36 3.00 inf];
+
+    pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tcspc_start, tail_bin);
 
     h = waitbar(0,'binning');
     %find all photons in one ISM pixel, by seaching in an interval of max count
@@ -288,40 +306,71 @@ if (lifetime)
 %        save_lower(i) = lower;
 %        save_upper(i) = upper;
        if ~isempty(ind)
-           if(ISM_img(y,x) > lt_cut_off)
-               [count, ~]   = histcounts(im_tcspc(lower + ind-1), 1:bin_factor:max_bin+1);
-               count        = count(lt_start:lt_end);
-               ISM_lt(i,:)  = count./sum(count);
+           if(ISM_img(y,x) >= lt_cut_off)
+               [count, ~]   = histcounts(im_tcspc(lower + ind-1), tcspc_t);
+%                max(count - 0.8*bin_dc(1:end-1).*head.ImgHdr_PixelTime, 0);
+%                count        = count./sum(count);
+%                ISM_lt(i,:)  = count;
+               ISM_lt_amp(i,:) = lsqnonneg(pattern, count.');
            end
 %          set new upper edge to lower plus interval length
            upper    = min(lower + ind(end) + interval, n_events);
 %          set lower edge to last found puls 1
            lower    = lower + ind(end);
+           if x==304 && y==260
+                disp('stop')
+           end
        else
 %            set new searche boundarys. because nothing was found keep
 %            lower extend upper
            upper    = min(upper + interval, n_events);
        end
-       if (mod(i,n_pixel_ISM/100) == 0)
+       if (mod(i,n_pixel_ISM/100) < 1)
             waitbar(i/n_pixel_ISM,h)
        end
     end
     close(h);
     fprintf('lifetime fit \n');
+% test tail fit
+%     
+%     ISM_img = ones(ISM_size)*20;
+%     lin_tau = ceil(linspace(0.01, max_lt, n_pixel_ISM));
+% 
+%     ISM_lt = pfun_monoexpBG(lin_tau, 0.01, tail_t-tcspc_start, tail_bin);
+% 
+% %     noise = wgn( numel(tail_t), n_pixel_ISM, 0);
+%     noise = normrnd(0, 1e-3,numel(tail_t), n_pixel_ISM);
+%     ISM_lt = ISM_lt + noise;
+% 
+%     figure
+%     hold on
+%     plot( ISM_lt(:,50000) )
+%     plot( ISM_lt(:,10) )
+%     plot( ISM_lt(:,100000) )
 
     %tail fit via pattern matching
-    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, lt_bin_l, tcspc_tail_l, max_lt, 0);
+%     [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, tail_t-tcspc_start, tail_bin, max_lt);
+% 
+% %     err = ISM_lt_img.' - lin_tau;
+% % 
+% %     figure
+% %     swarmchart(lin_tau, err, 'XJitterWidth', 0.3)
+% 
+%     %plot and save image
+%     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
+%     lt_img_plot(ISM_lt_img, ISM_img, c_map, lt_cut_off, [0.1 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
+% 
+%     h = figure;
+%     ax = axes(h);
+%     histogram(ISM_lt_img(ISM_lt_img > 0.1 & ISM_lt_img < max_lt),linspace(0.01,max_lt,100),'Normalization','count')
+% 
+%     file_name = append(LT_name, '_dist', '.png');
+%     exportgraphics(ax, file_name,'Resolution',600)
 
-    %plot and save image
-    ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
-    lt_img_plot(ISM_lt_img, ISM_img, c_greenred, lt_cut_off, [2.5 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
-    
-    h = figure;
-    ax = axes(h);
-    histogram(ISM_lt_img(ISM_lt_img>0.01 & ISM_lt_img < max_lt),linspace(0.01,max_lt,100),'Normalization','count')
-
-    file_name = append(LT_name, '_dist', '.png');
-    exportgraphics(ax, file_name,'Resolution',600)
+    ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
+    img_plot(ISM_lt_amp_img(:,:,1), spectrum, ISM_name, 'ISM 1.37ns', 1, IM_R, reso_line_ISM, 0, 0);
+    img_plot(ISM_lt_amp_img(:,:,2), spectrum, ISM_name, 'ISM 2.36ns', 1, IM_R, reso_line_ISM, 0, 0);
+    img_plot(ISM_lt_amp_img(:,:,3), spectrum, ISM_name, 'ISM 3ns', 1, IM_R, reso_line_ISM, 0, 0);
 % 
 %     figure
 %     hold on
@@ -440,24 +489,29 @@ end
 
 %% Additional figures for controle
 
-% Normalised monoexponetial decay with background
-pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
-pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
-
 figure
-[count, edges]   = histcounts(im_tcspc, tcspc_t);
-plot(tail_t,  count)
-set(gca, 'YScale', 'log')
-xlabel('time [ns]')
-ylabel('count')
+histogram(im_tcspc, 1:max_bin)
 
+[count, edges]   = histcounts(im_tcspc, tcspc_t);
+count = max(count - 0.8*bin_dc(1:end-1).*head.ImgHdr_FrameTime, 0);
 count = count./sum(count);
-[over_all_lt,over_all_back]  = lt_patternMatching(count,tail_t, tail_bin, max_lt);
+[over_all_lt,over_all_back]  = lt_patternMatching(count, tail_t, tail_bin, max_lt);
 disp(over_all_lt)
 
 % hex_plot(pixel_int.',hot)
 % plot_pixeldecay(im_tcspc,im_chan);
 
+figure
+plot(tail_t, count)
+hold on
+
+yy = pfun_monoexpBG(over_all_lt, over_all_back, tail_t, tail_bin);
+plot(tail_t, yy.')
+legend('data','pattern Matching')
+set(gca, 'YScale', 'log')
+ylim([0.5*min(yy) inf])
+xlabel('time [ns]')
+ylabel('normalized count')
 
 % dt      = tcspc_bin_l;
 % p       = max_bin * tcspc_bin_l;
@@ -469,19 +523,8 @@ disp(over_all_lt)
 % max_y   = max(y_all);
 % max_irf = max(irf);
 % irf     = irf.*max_y./max_irf;
-% taus    = [5, 12];
-% lim     = [0 0; 25 25];
-
-figure
-plot(tail_t, count)
-hold on
-
-yy = pfun_monoexpBG(over_all_lt,over_all_back,tail_t,tail_bin);
-plot(tail_t, yy.')
-legend('data','pattern Matching')
-set(gca, 'YScale', 'log')
-xlabel('time [ns]')
-ylabel('normalized count')
-
-% [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 1,1);
+% taus    = [1, 2, 4];
+% lim     = [0 0 0; 8 8 8];
+% 
+% [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 0, 1);
 
