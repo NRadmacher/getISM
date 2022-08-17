@@ -17,7 +17,14 @@ br2     = [[0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]];
 grl     = 1:255/3:256;
 gr2     = [[0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]];
 gl      = 1:255/1:256;
-g2      = [[0 0 0]; [0 1 0]];
+g2      = [[0 0 0]; [0.454325 0.806075 0.332481]];
+% g2      = [[0 0 0];[0 0.9686 0]];
+rl      = 1:255/1:256;
+r2      = [[0 0 0]; [1.000000 0.630093 0.501411]];
+% r2      = [[0 0 0]; [0.9961 0 0]];
+bl      = 1:255/1:256;
+b2      = [[0 0 0]; [0.000000 0.783196 1.000000]];
+% b2      = [[0 0 0]; [0.9608 1 0]];
 
 lambda  = 1:256;
 
@@ -25,9 +32,11 @@ spectrum    = interp1(sp1, sp2, lambda);
 c_greenred  = interp1(grl, gr2, lambda);
 c_bluered   = interp1(br1, br2, lambda);
 c_green     = interp1(gl, g2, lambda);
+c_red       = interp1(rl, r2, lambda);
+c_blue      = interp1(bl, b2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220815\neurons_g1_1_green_013.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220815\neurons_g1_1_green_014.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220708\irf_ex470nm_005.ptu';
 
@@ -279,11 +288,14 @@ if (lifetime)
     n_pixel_ISM     = prod(ISM_size);
     ISM_lt          = zeros(n_pixel_ISM, numel(tail_t));
     ISM_lt_amp      = zeros(n_pixel_ISM, 4);
+    ISM_lt_rgb      = zeros([ISM_siz 3]);
+
+    ISM_syt_name = append(ISM_name, ' SYT Cy2');
+    ISM_psd_name = append(ISM_name, ' PSD95 Alexa488');
+    ISM_gfap_name = append(ISM_name, ' GFAP OG');
 
     % generate decay patterns
-
     pattern_tau = [1.37 2.36 3.00 inf];
-
     pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tcspc_start, tail_bin);
 
     h = waitbar(0,'binning');
@@ -317,9 +329,6 @@ if (lifetime)
            upper    = min(lower + ind(end) + interval, n_events);
 %          set lower edge to last found puls 1
            lower    = lower + ind(end);
-           if x==304 && y==260
-                disp('stop')
-           end
        else
 %            set new searche boundarys. because nothing was found keep
 %            lower extend upper
@@ -368,9 +377,23 @@ if (lifetime)
 %     exportgraphics(ax, file_name,'Resolution',600)
 
     ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
-    img_plot(ISM_lt_amp_img(:,:,1), spectrum, ISM_name, 'ISM 1.37ns', 1, IM_R, reso_line_ISM, 0, 0);
-    img_plot(ISM_lt_amp_img(:,:,2), spectrum, ISM_name, 'ISM 2.36ns', 1, IM_R, reso_line_ISM, 0, 0);
-    img_plot(ISM_lt_amp_img(:,:,3), spectrum, ISM_name, 'ISM 3ns', 1, IM_R, reso_line_ISM, 0, 0);
+    img_plot(ISM_lt_amp_img(:,:,1), c_green, ISM_syt_name, 'ISM SYT', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_psd_name, 'ISM PSD95', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_amp_img(:,:,3), c_blue, ISM_gfap_name, 'ISM GFAP', 4, IM_R, reso_line_ISM, 0, 1);
+
+    ISM_lt_rgb(:,:,2) = ISM_lt_amp_img(:,:,1)./max(ISM_lt_amp_img(:,:,1),[],'all');
+    ISM_lt_rgb(:,:,1) = ISM_lt_amp_img(:,:,2)./max(ISM_lt_amp_img(:,:,2),[],'all');
+    ISM_lt_rgb(:,:,3) = ISM_lt_amp_img(:,:,3)./max(ISM_lt_amp_img(:,:,3),[],'all');
+
+    rgb_img_plot(ISM_lt_rgb, LT_name, 'Red: PSD95, Green: SYT, Blue: GFAP', 4, IM_R, 1)
+
+%     test_img = ISM_lt_amp_img(:,:,1:2:3);
+%     test_color =[[0 1 1]; [1 0 1]];
+% 
+%     test_rgb = tensorprod(test_img,test_color,3,1);
+%     test_rgb = test_rgb./repmat(sum(test_img,3), [1 1 size(test_rgb,3)] );
+% 
+%     multi_img_plot(ISM_lt_amp_img(:,:,1:3), reshape([c_green, c_red, c_blue], 256,3,3), ISM_name, 'ISM xns', 1, IM_R, 0)
 % 
 %     figure
 %     hold on
