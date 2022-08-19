@@ -36,9 +36,9 @@ c_red       = interp1(rl, r2, lambda);
 c_blue      = interp1(bl, b2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220815\neurons_g1_1_green_014.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\neurons_g1_1_green_009.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
-irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220708\irf_ex470nm_005.ptu';
+irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
 
 %Image title and name from file name
 tmp_name        = strsplit(fname, '\');
@@ -70,7 +70,7 @@ im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 [dc, bin_dc] = get_DC(dcname,0);
 
 %get IRF to set tail for tailfit
-[fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
+% [fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
 %% Parameters and magic numbers(please fix) AND FIX NAMEN FÜR TCSPC
 %number of pixels of the detector
 n_pixl = 23;
@@ -117,7 +117,7 @@ lt_cut_off = 0;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm;
-tail_start = 750;
+tail_start = 760;
 
 % tcspc tail_end in tcspc bin number
 tail_end = max_bin - 100;
@@ -288,14 +288,14 @@ if (lifetime)
     n_pixel_ISM     = prod(ISM_size);
     ISM_lt          = zeros(n_pixel_ISM, numel(tail_t));
     ISM_lt_amp      = zeros(n_pixel_ISM, 4);
-    ISM_lt_rgb      = zeros([ISM_siz 3]);
+    ISM_lt_rgb      = zeros([ISM_size 3]);
 
-    ISM_syt_name = append(ISM_name, ' SYT Cy2');
-    ISM_psd_name = append(ISM_name, ' PSD95 Alexa488');
-    ISM_gfap_name = append(ISM_name, ' GFAP OG');
+    ISM_syt_name = append(ISM_name, ' SYT Cy2'); %1.37
+    ISM_gfap_name = append(ISM_name, ' GFAP OG'); %2.37
+    ISM_psd_name = append(ISM_name, ' PSD95 Alexa488'); % 3.0
 
-    % generate decay patterns
-    pattern_tau = [1.37 2.36 3.00 inf];
+    % generate decay patterns from FL selecion[1.37 2.36 3.0]
+    pattern_tau = [0.58 1.31 3.43 inf];
     pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tcspc_start, tail_bin);
 
     h = waitbar(0,'binning');
@@ -377,23 +377,27 @@ if (lifetime)
 %     exportgraphics(ax, file_name,'Resolution',600)
 
     ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
-    img_plot(ISM_lt_amp_img(:,:,1), c_green, ISM_syt_name, 'ISM SYT', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_psd_name, 'ISM PSD95', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,3), c_blue, ISM_gfap_name, 'ISM GFAP', 4, IM_R, reso_line_ISM, 0, 1);
+    ISM_lt_amp_img = ISM_lt_amp_img.^0.8;
+    img_plot(ISM_lt_amp_img(:,:,1), c_green, ISM_syt_name, 'ISM short SYT', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_gfap_name, 'ISM middel GFAP', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_amp_img(:,:,3), c_blue, ISM_psd_name, 'ISM long PSD95', 4, IM_R, reso_line_ISM, 0, 1);
 
-    ISM_lt_rgb(:,:,2) = ISM_lt_amp_img(:,:,1)./max(ISM_lt_amp_img(:,:,1),[],'all');
-    ISM_lt_rgb(:,:,1) = ISM_lt_amp_img(:,:,2)./max(ISM_lt_amp_img(:,:,2),[],'all');
-    ISM_lt_rgb(:,:,3) = ISM_lt_amp_img(:,:,3)./max(ISM_lt_amp_img(:,:,3),[],'all');
+    ISM_lt_rgb(:,:,1) = ISM_lt_amp_img(:,:,2)./max(ISM_lt_amp_img(:,:,2),[],'all');%red
+    ISM_lt_rgb(:,:,2) = ISM_lt_amp_img(:,:,1)./max(ISM_lt_amp_img(:,:,1),[],'all');%green
+    ISM_lt_rgb(:,:,3) = ISM_lt_amp_img(:,:,3)./max(ISM_lt_amp_img(:,:,3),[],'all');%blue
 
-    rgb_img_plot(ISM_lt_rgb, LT_name, 'Red: PSD95, Green: SYT, Blue: GFAP', 4, IM_R, 1)
+    rgb_img_plot(ISM_lt_rgb, LT_name, 'Red: GFAP, Green: SYT, Blue: PSD95', 4, IM_R, 1)
 
-%     test_img = ISM_lt_amp_img(:,:,1:2:3);
-%     test_color =[[0 1 1]; [1 0 1]];
+%     test_img = ISM_lt_amp_img(:,:,1:3);
+%     test_img = ISM_lt_amp_img./repmat(max(ISM_lt_amp_img,[],[1 2]), [size(ISM_lt_amp_img,[1 2]) 1]);
+%     test_img = test_img(:,:,1:3);
+%     test_color =[g2(2,:); r2(2,:); b2(2,:)];
+%     test_color =[[1 0 1]; [0 1 1]; [0.96 1 0]];
 % 
 %     test_rgb = tensorprod(test_img,test_color,3,1);
-%     test_rgb = test_rgb./repmat(sum(test_img,3), [1 1 size(test_rgb,3)] );
-% 
-%     multi_img_plot(ISM_lt_amp_img(:,:,1:3), reshape([c_green, c_red, c_blue], 256,3,3), ISM_name, 'ISM xns', 1, IM_R, 0)
+%     test_rgb = test_rgb./repmat(max(test_rgb,[],[1 2]), [size(test_rgb,[1 2]) 1]);
+%     rgb_img_plot(test_rgb, LT_name, 'Red: GFAP, Green: SYT, Blue: PSD95', 4, IM_R, 0)
+
 % 
 %     figure
 %     hold on
@@ -516,25 +520,30 @@ figure
 histogram(im_tcspc, 1:max_bin)
 
 [count, edges]   = histcounts(im_tcspc, tcspc_t);
-count = max(count - 0.8*bin_dc(1:end-1).*head.ImgHdr_FrameTime, 0);
+
+[~,tau] = tripple_exp(tail_t.'-tcspc_start,count.');
+disp(tau)
+% count = max(count - 0.8*bin_dc(1:end-1).*head.ImgHdr_FrameTime, 0);
 count = count./sum(count);
-[over_all_lt,over_all_back]  = lt_patternMatching(count, tail_t, tail_bin, max_lt);
+[over_all_lt,over_all_back]  = lt_patternMatching(count, tail_t-tcspc_start, tail_bin, max_lt);
 disp(over_all_lt)
 
 % hex_plot(pixel_int.',hot)
 % plot_pixeldecay(im_tcspc,im_chan);
 
 figure
-plot(tail_t, count)
+plot(tail_t-tcspc_start, count)
 hold on
 
 yy = pfun_monoexpBG(over_all_lt, over_all_back, tail_t, tail_bin);
-plot(tail_t, yy.')
+plot(tail_t-tcspc_start, yy.')
 legend('data','pattern Matching')
 set(gca, 'YScale', 'log')
 ylim([0.5*min(yy) inf])
 xlabel('time [ns]')
 ylabel('normalized count')
+
+
 
 % dt      = tcspc_bin_l;
 % p       = max_bin * tcspc_bin_l;
@@ -545,9 +554,9 @@ ylabel('normalized count')
 % y_all   = y(1:tail_end);
 % max_y   = max(y_all);
 % max_irf = max(irf);
-% irf     = irf.*max_y./max_irf;
-% taus    = [1, 2, 4];
-% lim     = [0 0 0; 8 8 8];
+% % irf     = irf.*max_y./max_irf;
+% taus    = [0.5 1 2 3.45];
+% lim     = [0 0 0 0;8 8 8 8];
 % 
 % [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 0, 1);
 

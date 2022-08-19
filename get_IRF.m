@@ -11,6 +11,8 @@ end
 % [im_chan,im_tcspc,~,~,~,head] = read_ISM(fname);
 [im_chan,im_tcspc,~,head] = read_FCS(fname);
 
+% im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 630);
+
 bin_factor = 1;
 
 %% find fwhm and max
