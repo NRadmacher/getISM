@@ -4,6 +4,13 @@
 # png mages
 *.png
 
+# tif files
+*.tif
+*.tiff
+
+# pdf files
+*.pdf
+
 # OSX / *nix default autosave extension
 *.m~
 

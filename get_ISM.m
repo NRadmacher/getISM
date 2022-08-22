@@ -60,7 +60,6 @@ im_chan         = im_chan(ind);
 im_posx         = im_posx(ind);
 im_posy         = im_posy(ind);
 im_posx         = im_posx * head.ImgHdr_PixX;
-im_pix          = im_chan;
 im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 
 %remove time delay due to unsyncronised Multi Harps
@@ -72,8 +71,6 @@ im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 %get IRF to set tail for tailfit
 % [fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
 %% Parameters and magic numbers(please fix) AND FIX NAMEN FÜR TCSPC
-%number of pixels of the detector
-n_pixl = 23;
 
 %number of pixels in recorded image
 s_pixl_x    = head.ImgHdr_PixX;
@@ -83,7 +80,7 @@ s_pixl_y    = head.ImgHdr_PixY;
 IM_R = head.ImgHdr_PixResol;
 
 %ISM Binning UGO[1.02] PQ[1.04] UGO220302[1.01] 20nm[1.0075]
-ISM_binning = 1.02;
+ISM_binning = 1.01;
 
 %temporal resolution of TCSPC in seconds
 time_R = mean(head.MeasDesc_Resolution);
@@ -180,26 +177,23 @@ fprintf('ISM reasigment\n');
 %shift vectors from file negativ sign is already included
 sv_file = matfile('shift_vector.m');
 sv = sv_file.shift_vector;
-shift_x     = sv(1, im_pix+1).';
-shift_y     = sv(2, im_pix+1).';
+shift_x     = sv(1, im_chan+1).';
+shift_y     = sv(2, im_chan+1).';
 
 %apply ISM reassigment vektor
 ISM_posx    = im_posx - shift_x;
 ISM_posy    = im_posy - shift_y;
 
-%counts per detector pixel
-[pixel_int, ~]   = histcounts(im_pix,0:23);
-
 %% Confocal Image
 %generate confocal image
-[sum_img, sum_lin, sum_size] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
+[sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
 %remoce dark count
-sum_img     = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
+sum_img = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
 
 %plot and save
 reso_line_conf = [[105 105]; [30 65]];
-img_plot(sum_img, spectrum, colf_name, 'confocal', 1, IM_R, reso_line_conf, 0, 1);
+img_plot(sum_img, spectrum, colf_name, 'confocal', 4, IM_R, reso_line_conf, 0, 1);
 
 %% ISM Image
 %crate ISM image
@@ -212,7 +206,7 @@ img_plot(sum_img, spectrum, colf_name, 'confocal', 1, IM_R, reso_line_conf, 0, 1
 
 %plot and save
 reso_line_ISM = [[107 107]; [30 65]];
-img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), spectrum, ISM_name, 'ISM', 1, IM_R, reso_line_ISM, 0, 1);
+img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), spectrum, ISM_name, 'ISM', 4, IM_R, reso_line_ISM, 0, 1);
 
 %% manuel lucy Richerson decon
 if(deconv)
@@ -240,33 +234,27 @@ if (lifetime)
     ISM_lt_amp      = zeros(n_pixel_ISM, 4);
     ISM_lt_rgb      = zeros([ISM_size 3]);
 
-    ISM_syt_name = append(ISM_name, ' SYT Cy2'); %1.37
-    ISM_gfap_name = append(ISM_name, ' GFAP OG'); %2.37
-    ISM_psd_name = append(ISM_name, ' PSD95 Alexa488'); % 3.0
-
     % generate decay patterns from FL selecion[1.37 2.36 3.0]
-    pattern_tau = [0.58 1.31 3.43 inf];
+    pattern_tau = [0.56 2.3 3.32 inf];
     pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tcspc_start, tail_bin);
+
+    ISM_lt_short_name   = compose('%s lt short %0.1f ns', ISM_name, pattern_tau(1)); %1.37
+    ISM_lt_middle_name  = compose('%s lt middle %0.1f ns', ISM_name, pattern_tau(2)); %2.37
+    ISM_lt_long_name    = compose('%s lt long %0.1f ns', ISM_name, pattern_tau(3)); % 3.0
 
     h = waitbar(0,'binning');
     %find all photons in one ISM pixel, by seaching in an interval of max count
     %lengh + 1 
     lower = 1;
     upper = interval;
-
-    % care y x könnten vertauscht sein
-    % order photons in ISM lin index
+    
+    % Sort for faster seache
     [ISM_lin, sort_index] = sort(ISM_lin);
     im_tcspc    = im_tcspc(sort_index);
-
-%     save_lower = zeros(n_pixel_ISM,1);
-%     save_upper = zeros(n_pixel_ISM,1);
 
     for i = 1:n_pixel_ISM
        [y,x]    = ind2sub(ISM_size,i);
        ind      = find(ISM_lin(lower:upper) == i);
-%        save_lower(i) = lower;
-%        save_upper(i) = upper;
        if ~isempty(ind)
            if(ISM_img(y,x) >= lt_cut_off)
                [count, ~]   = histcounts(im_tcspc(lower + ind-1), tcspc_t);
@@ -275,13 +263,13 @@ if (lifetime)
 %                ISM_lt(i,:)  = count;
                ISM_lt_amp(i,:) = lsqnonneg(pattern, count.');
            end
-%          set new upper edge to lower plus interval length
+           % set new upper edge to lower plus interval length
            upper    = min(lower + ind(end) + interval, n_events);
-%          set lower edge to last found puls 1
+           % set lower edge to last found puls 1
            lower    = lower + ind(end);
        else
-%            set new searche boundarys. because nothing was found keep
-%            lower extend upper
+           % set new searche boundarys. because nothing was found keep
+           % lower extend upper
            upper    = min(upper + interval, n_events);
        end
        if (mod(i,n_pixel_ISM/100) < 1)
@@ -327,16 +315,17 @@ if (lifetime)
 %     exportgraphics(ax, file_name,'Resolution',600)
 
     ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
-    ISM_lt_amp_img = ISM_lt_amp_img.^0.8;
-    img_plot(ISM_lt_amp_img(:,:,1), c_green, ISM_syt_name, 'ISM short SYT', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_gfap_name, 'ISM middel GFAP', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,3), c_blue, ISM_psd_name, 'ISM long PSD95', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_amp_img(:,:,1), c_green, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_lt_middle_name{1}, 'OG: GFAP', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_amp_img(:,:,3), c_blue, ISM_lt_long_name{1}, 'Alexa PSD95', 4, IM_R, reso_line_ISM, 0, 1);
 
-    ISM_lt_rgb(:,:,1) = ISM_lt_amp_img(:,:,2)./max(ISM_lt_amp_img(:,:,2),[],'all');%red
-    ISM_lt_rgb(:,:,2) = ISM_lt_amp_img(:,:,1)./max(ISM_lt_amp_img(:,:,1),[],'all');%green
-    ISM_lt_rgb(:,:,3) = ISM_lt_amp_img(:,:,3)./max(ISM_lt_amp_img(:,:,3),[],'all');%blue
+    ISM_lt_rgb(:,:,1) = ISM_lt_amp_img(:,:,1)./max(ISM_lt_amp_img(:,:,1),[],'all');%red
+    ISM_lt_rgb(:,:,2) = ISM_lt_amp_img(:,:,3)./max(ISM_lt_amp_img(:,:,3),[],'all');%green
+    ISM_lt_rgb(:,:,3) = ISM_lt_amp_img(:,:,2)./max(ISM_lt_amp_img(:,:,2),[],'all');%blue
 
-    rgb_img_plot(ISM_lt_rgb, LT_name, 'Red: GFAP, Green: SYT, Blue: PSD95', 4, IM_R, 1)
+    comb_name = compose('%s multicolor %0.1f %0.1f %.01f', LT_name, pattern_tau(1), pattern_tau(2), pattern_tau(3));
+
+    rgb_img_plot(ISM_lt_rgb, comb_name{1}, 'Red: SYT 1, Green: PSD95, Blue: GFAP', 4, IM_R, 1)
 
 %     test_img = ISM_lt_amp_img(:,:,1:3);
 %     test_img = ISM_lt_amp_img./repmat(max(ISM_lt_amp_img,[],[1 2]), [size(ISM_lt_amp_img,[1 2]) 1]);
@@ -347,123 +336,15 @@ if (lifetime)
 %     test_rgb = tensorprod(test_img,test_color,3,1);
 %     test_rgb = test_rgb./repmat(max(test_rgb,[],[1 2]), [size(test_rgb,[1 2]) 1]);
 %     rgb_img_plot(test_rgb, LT_name, 'Red: GFAP, Green: SYT, Blue: PSD95', 4, IM_R, 0)
-
-% 
-%     figure
-%     hold on
-%     plot(ISM_lin, 1:n_events, 'b-')
-%     plot( save_lower, 'r-')
-%     plot( save_upper, 'g-')
 end
 
 %% SOFI
 if (sofi)
 
-%     interval        = ceil(1.01* max(max(sum_img)));
-%     n_pixel_sum     = prod(sum_size);
-%     SOFI_img        = zeros(n_pixel_sum, 1);
-%     SOFI_ism        = zeros(n_pixel_sum, 1);
-%     frame_times     = linspace(0, IM_dwell, n_frames + 1);
-% 
-%     h = waitbar(0,'sofiing ?');
-%     %find all photons in one ISM pixel, by seaching in an interval of max count
-%     lower = 1;
-%     upper = interval;
-% 
-%     % care y x könnten vertauscht sein
-%     [sum_lin, sort_index] = sort(sum_lin);
-% 
-%     sofi_tcspc  = im_tcspc(sort_index);
-%     sofi_time   = im_time(sort_index);
-%     sofi_chan   = im_chan(sort_index);
-% 
-%     save_lower  = zeros(n_pixel_sum,1);
-%     save_upper  = zeros(n_pixel_sum,1);
-% 
-%     for i = 1:n_pixel_sum
-%        [y,x]            = ind2sub(sum_size,i);
-%        ind              = find(sum_lin(lower:upper) == i);
-% %        save_lower(i)    = lower;
-% %        save_upper(i)    = upper;
-%        if ~isempty(ind)
-% 
-%            if(1)%(x == 127 && y == 55)
-%     
-%     %                -1 ?
-%     %               exact arrival time and detector channel of photons in
-%     %               current image pixel(frame)
-%                f_time = sofi_time(lower + ind - 1);% + sofi_tcspc(lower + ind-1) * time_R;
-%                f_chan = sofi_chan(lower + ind - 1);
-%                
-%                f_time = f_time - min(f_time);
-%     
-%                f_time = combine_photon_time(f_time, 10);
-%     
-%     %                t_max = max(f_time);
-%     %                t_min = min(f_time);
-%     % 
-%     %                frame_time = t_min:img_d:t_max;
-%     %                frames = size(frame_time,2)-1;
-%     
-%                detector = zeros(23, 1, n_frames);
-%                 for k = 1:n_pixl
-%                     ind_chan = f_chan == k - 1;
-%                     tmp      = f_time(ind_chan);
-%                     
-%                     [N,~]    = histcounts(tmp,frame_times);
-%                     
-%                     detector(k,1,:) = N;
-%                 end
-%            
-%                 [sof, ~] = SOFIAnalysis(detector, 2, n_frames);
-%                 zero_lagtime = var(detector, 0, 3);
-%                 spad_sofi = sof + zero_lagtime;
-%                 % TO DO sum here ?
-%                 SOFI_img(i,:) = sum(spad_sofi, 'all');
-%     
-%                 sv_x = max(min(x + sofi_sv(1,:), s_pixl_x), 1);
-%                 sv_y = max(min(y + sofi_sv(2,:), s_pixl_y), 1);
-%     
-%                 lin_shift = sub2ind(sum_size, sv_y, sv_x);
-%     
-%                 SOFI_ism(lin_shift) = SOFI_ism(lin_shift) + spad_sofi;
-%             end
-%     
-%                %set lower edge to last found puls 1
-%                n_lower      = lower + ind(end);
-%                %set new upper edge to lower plus interval length
-%                upper        = min(n_lower + interval, n_events);
-%        else
-%            %set new searche boundarys. because nothing was found keep lower
-%            %extend upper
-%            n_lower      = lower;
-%            upper        = min(upper + interval, n_events);
-%        end
-% 
-%        %set lower
-%        lower        = n_lower;
-% 
-%        if (mod(i,n_pixel_sum/100) == 0)
-%             waitbar(i/n_pixel_sum,h)
-%        end
-%     end
-%     close(h);
-%     fprintf('doing sofi \n');
-% 
-%     %plot and save image
-%     SOFI_img  = reshape(SOFI_img, sum_size);
-%     SOFI_ism  = reshape(SOFI_ism, sum_size);
-
     [SOFI_img, ISM_SOFI_img] = get_SOFI(sum_img,sum_lin, im_time, im_chan, sv, head);
 
     img_plot(ISM_SOFI_img, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, reso_line_conf, 0, 0);
     img_plot(SOFI_img, spectrum, 'sofi', 'sofi', 1, IM_R, reso_line_conf, 0, 0);
-
-%     figure
-%     hold on
-%     plot(sum_lin, 1:n_events, 'b-')
-%     plot( save_lower, 'r-')
-%     plot( save_upper, 'g-')
 end
 
 %% Additional figures for controle
@@ -473,23 +354,39 @@ histogram(im_tcspc, 1:max_bin)
 
 [count, edges]   = histcounts(im_tcspc, tcspc_t);
 
-[~,tau] = tripple_exp(tail_t.'-tcspc_start,count.');
+[tripple_amp,tau] = tripple_exp(tail_t.'-tcspc_start,count.');
 disp(tau)
-% count = max(count - 0.8*bin_dc(1:end-1).*head.ImgHdr_FrameTime, 0);
+disp(tripple_amp)
+
+xx = tail_t-tcspc_start;
 count = count./sum(count);
 [over_all_lt,over_all_back]  = lt_patternMatching(count, tail_t-tcspc_start, tail_bin, max_lt);
 disp(over_all_lt)
 
-% hex_plot(pixel_int.',hot)
-% plot_pixeldecay(im_tcspc,im_chan);
-
 figure
-plot(tail_t-tcspc_start, count)
+plot(tail_t-tcspc_start, count, 'bo')
 hold on
 
 yy = pfun_monoexpBG(over_all_lt, over_all_back, tail_t, tail_bin);
-plot(tail_t-tcspc_start, yy.')
-legend('data','pattern Matching')
+plot(tail_t-tcspc_start, yy.','r-')
+
+amp1 = tripple_amp(1);
+amp2 = tripple_amp(2);
+amp3 = tripple_amp(3);
+offset = tripple_amp(4);
+y4 =  amp1*exp(-xx/tau(1)) + amp2*exp(-xx/tau(2)) + amp3*exp(-xx/tau(3)) + offset;
+y4 = y4./sum(y4);
+plot(xx,y4,'g-')
+
+amp1 = sum(ISM_lt_amp_img(:,:,1), 'all');
+amp2 = sum(ISM_lt_amp_img(:,:,2), 'all');
+amp3 = sum(ISM_lt_amp_img(:,:,3), 'all');
+offset = sum(ISM_lt_amp_img(:,:,4), 'all');
+y3 =  amp1*exp(-xx/pattern_tau(1)) + amp2*exp(-xx/pattern_tau(2)) + amp3*exp(-xx/pattern_tau(3)) + offset;
+y3 = y3./sum(y3);
+plot(xx,y3,'m-')
+
+legend('data','pattern Matching', 'true tripple', 'good looking')
 set(gca, 'YScale', 'log')
 ylim([0.5*min(yy) inf])
 xlabel('time [ns]')
