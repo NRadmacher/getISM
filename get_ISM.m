@@ -5,9 +5,9 @@ clear
 close all
 clc
 
-lifetime    = 0;
+lifetime    = 1;
 deconv      = 0;
-sofi        = 1;
+sofi        = 0;
 %% Loadind data
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
 sp1     = 1:255/7:256;
@@ -36,7 +36,7 @@ c_red       = interp1(rl, r2, lambda);
 c_blue      = interp1(bl, b2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220726\qdots_em605nm_012.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\211101\Laurdan_026.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
 
@@ -56,6 +56,7 @@ LT_name         = append(img_name, ' lt');
 [im_chan,im_tcspc,im_posy,im_posx,im_time, head] = read_ISM(fname);
 
 ind             = im_posy<=head.ImgHdr_PixY;
+im_tcspc        = im_tcspc(ind);
 im_chan         = im_chan(ind);
 im_posx         = im_posx(ind);
 im_posy         = im_posy(ind);
@@ -92,17 +93,17 @@ n_events = numel(im_posx);
 max_bin = head.max_bin;
 
 % TCSPC binning factor
-bin_factor = 20;
+bin_factor = 1;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 0;
+lt_cut_off = 50;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
-% tail_start = indMax + fwhm;
-tail_start = 760;
+% tail_start = indMax + fwhm; 600
+tail_start = 250;
 
 % tcspc tail_end in tcspc bin number
-tail_end = max_bin - 100;
+tail_end = max_bin - 50;
 
 % tcspc tail lenght in tcspc bin number
 tail_l = tail_end - tail_start;
@@ -259,9 +260,9 @@ if (lifetime)
            if(ISM_img(y,x) >= lt_cut_off)
                [count, ~]   = histcounts(im_tcspc(lower + ind-1), tcspc_t);
 %                max(count - 0.8*bin_dc(1:end-1).*head.ImgHdr_PixelTime, 0);
-%                count        = count./sum(count);
-%                ISM_lt(i,:)  = count;
                ISM_lt_amp(i,:) = lsqnonneg(pattern, count.');
+               count        = count./sum(count);
+               ISM_lt(i,:)  = count;
            end
            % set new upper edge to lower plus interval length
            upper    = min(lower + ind(end) + interval, n_events);
@@ -278,54 +279,38 @@ if (lifetime)
     end
     close(h);
     fprintf('lifetime fit \n');
-% test tail fit
-%     
-%     ISM_img = ones(ISM_size)*20;
-%     lin_tau = ceil(linspace(0.01, max_lt, n_pixel_ISM));
-% 
-%     ISM_lt = pfun_monoexpBG(lin_tau, 0.01, tail_t-tcspc_start, tail_bin);
-% 
-% %     noise = wgn( numel(tail_t), n_pixel_ISM, 0);
-%     noise = normrnd(0, 1e-3,numel(tail_t), n_pixel_ISM);
-%     ISM_lt = ISM_lt + noise;
-% 
-%     figure
-%     hold on
-%     plot( ISM_lt(:,50000) )
-%     plot( ISM_lt(:,10) )
-%     plot( ISM_lt(:,100000) )
 
     %tail fit via pattern matching
-%     [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, tail_t-tcspc_start, tail_bin, max_lt);
+    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, tail_t-tcspc_start, tail_bin, max_lt);
+
+
+    %plot and save image
+    ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
+    lt_img_plot(ISM_lt_img, ISM_img, c_greenred, lt_cut_off, [3.5 6], 'Lifetime', LT_name, 2, IM_R, 1)
 % 
-% %     err = ISM_lt_img.' - lin_tau;
-% % 
-% %     figure
-% %     swarmchart(lin_tau, err, 'XJitterWidth', 0.3)
-% 
-%     %plot and save image
-%     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
-%     lt_img_plot(ISM_lt_img, ISM_img, c_map, lt_cut_off, [0.1 max_lt], 'Lifetime', LT_name, 2, IM_R, 1)
-% 
-%     h = figure;
-%     ax = axes(h);
-%     histogram(ISM_lt_img(ISM_lt_img > 0.1 & ISM_lt_img < max_lt),linspace(0.01,max_lt,100),'Normalization','count')
+    h = figure;
+    ax = axes(h);
+    histogram(ISM_lt_img(ISM_lt_img > 0.1 & ISM_lt_img < max_lt),linspace(0.01,max_lt,100),'Normalization','count')
 % 
 %     file_name = append(LT_name, '_dist', '.png');
 %     exportgraphics(ax, file_name,'Resolution',600)
 
-    ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
-    img_plot(ISM_lt_amp_img(:,:,1), c_green, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_lt_middle_name{1}, 'OG: GFAP', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,3), c_blue, ISM_lt_long_name{1}, 'Alexa PSD95', 4, IM_R, reso_line_ISM, 0, 1);
-
-    ISM_lt_rgb(:,:,1) = ISM_lt_amp_img(:,:,1)./max(ISM_lt_amp_img(:,:,1),[],'all');%red
-    ISM_lt_rgb(:,:,2) = ISM_lt_amp_img(:,:,3)./max(ISM_lt_amp_img(:,:,3),[],'all');%green
-    ISM_lt_rgb(:,:,3) = ISM_lt_amp_img(:,:,2)./max(ISM_lt_amp_img(:,:,2),[],'all');%blue
-
-    comb_name = compose('%s multicolor %0.1f %0.1f %.01f', LT_name, pattern_tau(1), pattern_tau(2), pattern_tau(3));
-
-    rgb_img_plot(ISM_lt_rgb, comb_name{1}, 'Red: SYT 1, Green: PSD95, Blue: GFAP', 4, IM_R, 1)
+%     ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
+%     img_plot(ISM_lt_amp_img(:,:,1), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 0);
+%     img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_lt_middle_name{1}, 'OG: PSD95', 4, IM_R, reso_line_ISM, 0, 0);
+%     img_plot(ISM_lt_amp_img(:,:,3), c_green, ISM_lt_long_name{1}, 'Alexa: GFAP', 4, IM_R, reso_line_ISM, 0, 0);
+% 
+%     ISM_lt_rgb(:,:,1) = mat2gray(ISM_lt_amp_img(:,:,2),[2 290]);%red
+%     ISM_lt_rgb(:,:,2) = mat2gray(ISM_lt_amp_img(:,:,3),[11 56]);%green
+%     ISM_lt_rgb(:,:,3) = mat2gray(ISM_lt_amp_img(:,:,1),[1 150]);%blue
+% 
+%     img_plot(ISM_lt_rgb(:,:,3), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 1);
+%     img_plot(ISM_lt_rgb(:,:,1), c_red, ISM_lt_middle_name{1}, 'OG: PSD95', 4, IM_R, reso_line_ISM, 0, 1);
+%     img_plot(ISM_lt_rgb(:,:,2), c_green, ISM_lt_long_name{1}, 'Alexa: GFAP', 4, IM_R, reso_line_ISM, 0, 1);
+% 
+%     comb_name = compose('%s multicolor %0.1f %0.1f %.01f', LT_name, pattern_tau(1), pattern_tau(2), pattern_tau(3));
+% 
+%     rgb_img_plot(ISM_lt_rgb, comb_name{1}, 'Red: PSD95, Green: GFAP, Blue: SYT 1', 4, IM_R, 1)
 
 %     test_img = ISM_lt_amp_img(:,:,1:3);
 %     test_img = ISM_lt_amp_img./repmat(max(ISM_lt_amp_img,[],[1 2]), [size(ISM_lt_amp_img,[1 2]) 1]);
@@ -354,9 +339,9 @@ histogram(im_tcspc, 1:max_bin)
 
 [count, edges]   = histcounts(im_tcspc, tcspc_t);
 
-[tripple_amp,tau] = tripple_exp(tail_t.'-tcspc_start,count.');
-disp(tau)
-disp(tripple_amp)
+% [tripple_amp,tau] = tripple_exp(tail_t.'-tcspc_start,count.',0);
+% disp(tau)
+% disp(tripple_amp)
 
 xx = tail_t-tcspc_start;
 count = count./sum(count);
@@ -370,27 +355,27 @@ hold on
 yy = pfun_monoexpBG(over_all_lt, over_all_back, tail_t, tail_bin);
 plot(tail_t-tcspc_start, yy.','r-')
 
-amp1 = tripple_amp(1);
-amp2 = tripple_amp(2);
-amp3 = tripple_amp(3);
-offset = tripple_amp(4);
-y4 =  amp1*exp(-xx/tau(1)) + amp2*exp(-xx/tau(2)) + amp3*exp(-xx/tau(3)) + offset;
-y4 = y4./sum(y4);
-plot(xx,y4,'g-')
-
-amp1 = sum(ISM_lt_amp_img(:,:,1), 'all');
-amp2 = sum(ISM_lt_amp_img(:,:,2), 'all');
-amp3 = sum(ISM_lt_amp_img(:,:,3), 'all');
-offset = sum(ISM_lt_amp_img(:,:,4), 'all');
-y3 =  amp1*exp(-xx/pattern_tau(1)) + amp2*exp(-xx/pattern_tau(2)) + amp3*exp(-xx/pattern_tau(3)) + offset;
-y3 = y3./sum(y3);
-plot(xx,y3,'m-')
-
-legend('data','pattern Matching', 'true tripple', 'good looking')
-set(gca, 'YScale', 'log')
-ylim([0.5*min(yy) inf])
-xlabel('time [ns]')
-ylabel('normalized count')
+% amp1 = tripple_amp(1);
+% amp2 = tripple_amp(2);
+% amp3 = tripple_amp(3);
+% offset = tripple_amp(4);
+% y4 =  amp1*exp(-xx/tau(1)) + amp2*exp(-xx/tau(2)) + amp3*exp(-xx/tau(3)) + offset;
+% y4 = y4./sum(y4);
+% plot(xx,y4,'g-')
+% 
+% amp1 = sum(ISM_lt_amp_img(:,:,1), 'all');
+% amp2 = sum(ISM_lt_amp_img(:,:,2), 'all');
+% amp3 = sum(ISM_lt_amp_img(:,:,3), 'all');
+% offset = sum(ISM_lt_amp_img(:,:,4), 'all');
+% y3 =  amp1*exp(-xx/pattern_tau(1)) + amp2*exp(-xx/pattern_tau(2)) + amp3*exp(-xx/pattern_tau(3)) + offset;
+% y3 = y3./sum(y3);
+% plot(xx,y3,'m-')
+% 
+% legend('data','pattern Matching', 'true tripple', 'good looking')
+% set(gca, 'YScale', 'log')
+% ylim([0.5*min(yy) inf])
+% xlabel('time [ns]')
+% ylabel('normalized count')
 
 
 

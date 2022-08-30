@@ -24,7 +24,7 @@ function [SOFI_img, ISM_SOFI_img] = get_SOFI(sum_img, sum_lin, im_time, im_chan,
     sofi_sv = round(sv);
 
     %aquisition time per scan pixel
-    IM_dwell = head.ImgHdr_DwellTime;
+    IM_dwell = head.ImgHdr_PixelTime;
 
     %duration of one frames (image) in seconds for SOFI JE 100 mu sec
     img_d = 1e-4;
@@ -69,6 +69,7 @@ function [SOFI_img, ISM_SOFI_img] = get_SOFI(sum_img, sum_lin, im_time, im_chan,
     sofi_time   = im_time(sort_index);
     sofi_chan   = im_chan(sort_index);
 
+    % going over all pixels
     for i = 1:n_pixel_sum
        [y,x]            = ind2sub(sum_size,i);
        ind              = find(sum_lin(lower:upper) == i);
@@ -80,10 +81,11 @@ function [SOFI_img, ISM_SOFI_img] = get_SOFI(sum_img, sum_lin, im_time, im_chan,
             f_chan = sofi_chan(lower + ind - 1);
             
             f_time = f_time - min(f_time);
-            
+            % remove time gaps due to multiple scans
             f_time = combine_photon_time(f_time, 10);
             
-            detector = zeros(23, 1, n_frames);
+            % get time trace for every detector pixel
+            detector = zeros(n_pixl, 1, n_frames);
             for k = 1:n_pixl
                 ind_chan = f_chan == k - 1;
                 tmp      = f_time(ind_chan);
@@ -92,12 +94,15 @@ function [SOFI_img, ISM_SOFI_img] = get_SOFI(sum_img, sum_lin, im_time, im_chan,
                 
                 detector(k,1,:) = N;
             end
+            % get sum of cumulants for non zeros lagtime
             [sof, ~] = SOFIAnalysis(detector, 2, n_frames);
+            % second order cumulant with zero lagtime is just varinace
             zero_lagtime = var(detector, 0, 3);
             spad_sofi = sof + zero_lagtime;
             % TO DO sum here ?
             SOFI_img(i,:) = sum(spad_sofi, 'all');
     
+            % ISM pixel reasigment max(min..)) for edges
             sv_x = max(min(x + sofi_sv(1,:), s_pixl_x), 1);
             sv_y = max(min(y + sofi_sv(2,:), s_pixl_y), 1);
     
