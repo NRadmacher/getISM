@@ -8,11 +8,17 @@ fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220424\q_dot_008.pt
 %good sv unit 08.07.2022
 fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220309\tetra_beads_015.ptu';
 
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220726\qdots_em605nm_007.ptu';
+% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220726\qdots_em605nm_007.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 %good shift vektors with pinhole 220302 004
 % fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220314\homer_bassoon_006.ptu';
 
+tmp_name        = strsplit(fname, '\');
+date            = tmp_name{end-1};
+img_name        = tmp_name{end};
+img_name        = strsplit(img_name, '.');
+img_name        = img_name{end-1};
+img_name        = append(date,' ',img_name);
 
 [im_chan,~,im_posy,im_posx,~, head] = read_ISM(fname);
 
@@ -120,7 +126,8 @@ yc  = -1.*mean(shift_y_ic);
 % this is the shift vector for each channel
 sv_ic  = -[xc; yc]./alpha;
 
-figure
+h = figure;
+ax = axes(h);
 axis equal
 hold on
 quiver(xc, yc ,sv_ic(1,:),sv_ic(2,:),0, 'LineWidth', 2)  
@@ -132,13 +139,16 @@ text(xc+0.2, yc, txt)
 % plot(det_x, det_y,'xb','MarkerSize',10, 'LineWidth', 2, 'MarkerEdgeColor', 'red')
 % text(det_x+0.2, det_y, txt)
 
-set(gca,'DataAspectRatio', [1,1,1], ...
+set(ax,'DataAspectRatio', [1,1,1], ...
     'PlotBoxAspectRatio',[1 1 1]);
 ylabel('y shift [pixel]')
 xlabel('x shift [pixel]')
 grid on
 box on
 title("SPAD ic")
+name = append(img_name, '_sv');
+file_name = append(name,'.png');
+exportgraphics(ax, file_name,'Resolution',600)
 
 figure
 axis equal
