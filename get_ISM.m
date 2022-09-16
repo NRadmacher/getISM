@@ -5,8 +5,8 @@ clear
 close all
 clc
 
-lifetime    = 1;
-deconv      = 1;
+lifetime    = 0;
+deconv      = 0;
 sofi        = 0;
 %% Loadind data
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
@@ -36,7 +36,7 @@ c_red       = interp1(rl, r2, lambda);
 c_blue      = interp1(bl, b2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220819\neurons_g1_2_green_004.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220914\neurons_g1_cy2_syt_004.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
 
@@ -100,10 +100,10 @@ lt_cut_off = 50;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm; diode [600], TiSa [250]
-tail_start = 650;
+tail_start = 700;
 
 % tcspc tail_end in tcspc bin number
-tail_end = max_bin - 150;
+tail_end = max_bin - 100;
 
 % tcspc tail lenght in tcspc bin number
 tail_l = tail_end - tail_start;
@@ -182,8 +182,8 @@ shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
 
 %apply ISM reassigment vektor
-ISM_posx    = im_posx - shift_x;
-ISM_posy    = im_posy - shift_y;
+ISM_posx    = im_posx + shift_x;
+ISM_posy    = im_posy + shift_y;
 
 %% Confocal Image
 %generate confocal image
@@ -367,13 +367,13 @@ y4 =  amp1*exp(-xx/tau(1)) + amp2*exp(-xx/tau(2)) + amp3*exp(-xx/tau(3)) + offse
 y4 = y4./sum(y4);
 plot(xx,y4,'g-')
 
-amp1 = sum(ISM_lt_amp_img(:,:,1), 'all');
-amp2 = sum(ISM_lt_amp_img(:,:,2), 'all');
-amp3 = sum(ISM_lt_amp_img(:,:,3), 'all');
-offset = sum(ISM_lt_amp_img(:,:,4), 'all');
-y3 =  amp1*exp(-xx/pattern_tau(1)) + amp2*exp(-xx/pattern_tau(2)) + amp3*exp(-xx/pattern_tau(3)) + offset;
-y3 = y3./sum(y3);
-plot(xx,y3,'m-')
+% amp1 = sum(ISM_lt_amp_img(:,:,1), 'all');
+% amp2 = sum(ISM_lt_amp_img(:,:,2), 'all');
+% amp3 = sum(ISM_lt_amp_img(:,:,3), 'all');
+% offset = sum(ISM_lt_amp_img(:,:,4), 'all');
+% y3 =  amp1*exp(-xx/pattern_tau(1)) + amp2*exp(-xx/pattern_tau(2)) + amp3*exp(-xx/pattern_tau(3)) + offset;
+% y3 = y3./sum(y3);
+% plot(xx,y3,'m-')
 
 legend('data','pattern Matching', 'true tripple', 'good looking')
 set(gca, 'YScale', 'log')
