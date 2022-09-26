@@ -9,6 +9,9 @@ fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220424\q_dot_008.pt
 fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220309\tetra_beads_015.ptu';
 
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220726\qdots_em605nm_007.ptu';
+
+%pc shift 
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210310\Tubulin_Dylight488_002.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 %good shift vektors with pinhole 220302 004
 % fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220314\homer_bassoon_006.ptu';
@@ -111,8 +114,8 @@ hold on
 quiver(xc, yc ,sv_pc(1,:),sv_pc(2,:),0, 'LineWidth', 2)  
 numb = 0:22;
 txt = string(numb);
-plot(xc, yc,'xb','MarkerSize',10, 'LineWidth', 2)
-text(xc, yc, txt)
+plot(xc, yc,'xb','MarkerSize',10, 'LineWidth', 2 ,'MarkerEdgeColor', 'green')
+text(xc+0.2, yc, txt)
 set(gca,'DataAspectRatio', [1,1,1], ...
     'PlotBoxAspectRatio',[1 1 1]);
 ylabel('y shift [pixel]')
