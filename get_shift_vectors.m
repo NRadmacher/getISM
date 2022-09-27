@@ -12,6 +12,8 @@ fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220309\tetra_beads_
 
 %pc shift 
 fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210310\Tubulin_Dylight488_002.ptu';
+%sv for neurons sice 27.09.22
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220927\neurons_g1_cy2_syt1_one_005.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 %good shift vektors with pinhole 220302 004
 % fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220314\homer_bassoon_006.ptu';
