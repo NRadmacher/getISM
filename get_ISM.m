@@ -6,7 +6,7 @@ close all
 clc
 
 lifetime    = 1;
-deconv      = 0;
+deconv      = 1;
 sofi        = 0;
 %% Loadind data
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
@@ -97,11 +97,11 @@ max_bin = head.max_bin;
 bin_factor = 20;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 50;
+lt_cut_off = 0;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm; diode [600/700], TiSa [250]
-tail_start = 700;
+tail_start = 660;
 
 % tcspc tail_end in tcspc bin number
 tail_end = max_bin - 100;
@@ -183,14 +183,14 @@ shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
 
 %apply ISM reassigment vektor
-ISM_posx    = im_posx + shift_x;
-ISM_posy    = im_posy + shift_y;
+ISM_posx    = im_posx - shift_x.*1.1;
+ISM_posy    = im_posy - shift_y.*1.1;
 
 clear shift_y shift_x;
 
 %% Confocal Image
 %generate confocal image
-[sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
+[sum_img, sum_lin, sum_size] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
 clear im_posy im_posx;
 %remoce dark count
@@ -198,11 +198,11 @@ clear im_posy im_posx;
 
 %plot and save
 reso_line_conf = [[105 105]; [30 65]];
-img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), spectrum, colf_name, 'confocal', 4, IM_R, reso_line_conf, 0, 1);
+img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, colf_name, 'confocal', 4, IM_R, reso_line_conf, 0, 1);
 
 %% ISM Image
 %crate ISM image
-[ISM_img, ISM_lin, ISM_size]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, 1);
+[ISM_img, ISM_lin, ISM_size]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
 
 clear ISM_posy ISM_posx;
 %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
@@ -212,7 +212,7 @@ clear ISM_posy ISM_posx;
 
 %plot and save
 reso_line_ISM = [[107 107]; [30 65]];
-img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), spectrum, ISM_name, 'ISM', 4, IM_R, reso_line_ISM, 0, 1);
+img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, 'ISM', 4, IM_R, reso_line_ISM, 0, 1);
 
 %% manuel lucy Richerson decon
 if(deconv)
@@ -225,7 +225,7 @@ if(deconv)
     eid      = eid/sum(eid, 'all');
     
     manuel_decon(ISM_img, eid, ...
-                c_map = spectrum, s_name = ISM_docn_name, ...
+                c_map = hot, s_name = ISM_docn_name, ...
                 t_name = 'ISM + deconvolution', ...
                 sb_lenght = 1,IM_R = IM_R,...
                 reso = 0, save = 1);
@@ -234,14 +234,14 @@ end
 %% Lifetime Image
 if (lifetime)
 
-    interval        = ceil(1.01* max(max(ISM_img)));
-    n_pixel_ISM     = prod(ISM_size);
+    interval        = ceil(1.01* max(max(sum_img)));
+    n_pixel_ISM     = prod(sum_size);
     ISM_lt          = zeros(n_pixel_ISM, numel(tail_t));
     ISM_lt_amp      = zeros(n_pixel_ISM, 4);
-    ISM_lt_rgb      = zeros([ISM_size 3]);
+    ISM_lt_rgb      = zeros([sum_size 3]);
 
     % generate decay patterns from FL selecion[1.37 2.36 3.0]
-    pattern_tau = [0.41 1.299 3.57 inf];
+    pattern_tau = [0.6 1.3 3.7 inf];
     pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tcspc_start, tail_bin);
 
     ISM_lt_short_name   = compose('%s lt short %0.1f ns', ISM_name, pattern_tau(1)); %1.37
@@ -255,14 +255,14 @@ if (lifetime)
     upper = interval;
     
     % Sort for faster seache
-    [ISM_lin, sort_index] = sort(ISM_lin);
+    [ISM_lin, sort_index] = sort(sum_lin);
     im_tcspc    = im_tcspc(sort_index);
 
     for i = 1:n_pixel_ISM
-       [y,x]    = ind2sub(ISM_size,i);
+       [y,x]    = ind2sub(sum_size,i);
        ind      = find(ISM_lin(lower:upper) == i);
        if ~isempty(ind)
-           if(ISM_img(y,x) >= lt_cut_off)
+           if(sum_img(y,x) >= lt_cut_off)
                [count, ~]   = histcounts(im_tcspc(lower + ind-1), tcspc_t);
 %                max(count - 0.8*bin_dc(1:end-1).*head.ImgHdr_PixelTime, 0);
                ISM_lt_amp(i,:) = lsqnonneg(pattern, count.');
@@ -300,18 +300,18 @@ if (lifetime)
 %     file_name = append(LT_name, '_dist', '.png');
 %     exportgraphics(ax, file_name,'Resolution',600)
 
-    ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
+    ISM_lt_amp_img = reshape(ISM_lt_amp, [sum_size(1), sum_size(2), 4]);
     img_plot(ISM_lt_amp_img(:,:,1), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 1);
     img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_lt_middle_name{1}, 'OG: PSD95', 4, IM_R, reso_line_ISM, 0, 1);
     img_plot(ISM_lt_amp_img(:,:,3), c_green, ISM_lt_long_name{1}, 'Alexa: GFAP', 4, IM_R, reso_line_ISM, 0, 1);
 
-    ISM_lt_rgb(:,:,1) = mat2gray(ISM_lt_amp_img(:,:,2),[2 140]);%red
-    ISM_lt_rgb(:,:,2) = mat2gray(ISM_lt_amp_img(:,:,3),[1 65]);%green
-    ISM_lt_rgb(:,:,3) = mat2gray(ISM_lt_amp_img(:,:,1),[1 70]);%blue
+    ISM_lt_rgb(:,:,1) = mat2gray(ISM_lt_amp_img(:,:,2),[2 173]);%red
+    ISM_lt_rgb(:,:,2) = mat2gray(ISM_lt_amp_img(:,:,3),[2 72]);%green
+    ISM_lt_rgb(:,:,3) = mat2gray(ISM_lt_amp_img(:,:,1),[1 73]);%blue
 
-    img_plot(ISM_lt_rgb(:,:,3), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_rgb(:,:,1), c_red, ISM_lt_middle_name{1}, 'OG: PSD95', 4, IM_R, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_rgb(:,:,2), c_green, ISM_lt_long_name{1}, 'Alexa: GFAP', 4, IM_R, reso_line_ISM, 0, 1);
+    img_plot(ISM_lt_rgb(:,:,3), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 0);
+    img_plot(ISM_lt_rgb(:,:,1), c_red, ISM_lt_middle_name{1}, 'OG: PSD95', 4, IM_R, reso_line_ISM, 0, 0);
+    img_plot(ISM_lt_rgb(:,:,2), c_green, ISM_lt_long_name{1}, 'Alexa: GFAP', 4, IM_R, reso_line_ISM, 0, 0);
 
     comb_name = compose('%s multicolor %0.1f %0.1f %.01f', LT_name, pattern_tau(1), pattern_tau(2), pattern_tau(3));
 
@@ -350,6 +350,7 @@ ylabel('count')
 [count, edges]   = histcounts(im_tcspc, tcspc_t);
 
 [tripple_amp,tau] = tripple_exp(tail_t.'-tcspc_start,count.',0);
+disp('over all tau and amp')
 disp(tau)
 disp(tripple_amp./sum(tripple_amp))
 
@@ -366,7 +367,7 @@ plot(tail_t-tcspc_start, count, 'o', 'MarkerSize', 10, 'Color', '#EDB120')
 hold on
 
 yy = pfun_monoexpBG(over_all_lt, over_all_back, tail_t, tail_bin);
-plot(tail_t-tcspc_start, yy.','g-')
+plot(tail_t-tcspc_start, yy.','g-','LineWidth',2)
 xlabel('time [ns]')
 ylabel('normalized count')
 
@@ -374,23 +375,24 @@ amp1 = tripple_amp(1);
 amp2 = tripple_amp(2);
 amp3 = tripple_amp(3);
 offset = tripple_amp(4);
-y4 =  amp1*exp(-xx/tau(1)) + amp2*exp(-xx/tau(2)) + amp3*exp(-xx/tau(3)) + offset;
+y4 =  amp1*exp(-xx/1) + amp2*exp(-xx/tau(2)) + amp3*exp(-xx/tau(3)) + offset;
 y4 = y4./sum(y4);
-plot(xx,y4,'r-','LineWidth',2, 'Color', '#A2142F')
+plot(xx,y4,'-','LineWidth',2, 'Color', '#A2142F')
 
 amp1 = sum(ISM_lt_amp_img(:,:,1), 'all');
 amp2 = sum(ISM_lt_amp_img(:,:,2), 'all');
 amp3 = sum(ISM_lt_amp_img(:,:,3), 'all');
 offset = sum(ISM_lt_amp_img(:,:,4), 'all');
-y3 =  amp1*exp(-xx/pattern_tau(1)) + amp2*exp(-xx/pattern_tau(2)) + amp3*exp(-xx/pattern_tau(3)) + offset;
+y3 =  amp1*pattern(:,1) + amp2*pattern(:,2) + amp3*pattern(:,3) + offset*pattern(:,4);
 y3 = y3./sum(y3);
-plot(xx,y3,'b-')
+plot(xx,y3,'b-','LineWidth',2)
 
 legend('tail decay','pattern Matching', 'true tripple', 'from image tripple')
 % legend('tail decay','tripple exponential fit')
 set(ax1, 'YScale', 'log')
-ylim([0.5*min(yy) inf])
+% ylim([0.5*min(yy) inf])
 xlim('padded')
+ylim('padded')
 xlabel('time [ns]')
 ylabel('normalized count')
 title('TCSPC decay of an individual pixel');
@@ -416,6 +418,10 @@ set(ax4, 'YScale', 'log')
 ylim([1e-4 1])
 xlim([0 20])
 title('long');
+
+disp('amps from pixel fit')
+fprintf('%f %f %f %f\n',amp1/(amp1+amp2+amp2+offset), amp2/(amp1+amp2+amp2+offset),...
+    amp3/(amp1+amp2+amp2+offset), offset/(amp1+amp2+amp2+offset))
 
 % dt      = tcspc_bin_l;
 % p       = max_bin * tcspc_bin_l;
