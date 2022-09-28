@@ -5,7 +5,8 @@ clear
 close all
 clc
 
-lifetime    = 1;
+lifetime    = 0;
+s_lifetime  = 1;
 deconv      = 0;
 sofi        = 0;
 %% Loadind data
@@ -36,7 +37,7 @@ c_red       = interp1(rl, r2, lambda);
 c_blue      = interp1(bl, b2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220927\neurons_g1_cy2_syt1_two_010.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220928\neurons_g1_alexa488_psd95_one_008.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
 
@@ -53,7 +54,7 @@ colf_name       = append(img_name, ' no ISM');
 LT_name         = append(img_name, ' lt');
 
 %read ISM data from .ptu file
-[im_chan,im_tcspc,im_posy,im_posx,im_time, head] = read_ISM(fname);
+[im_chan,im_tcspc,im_posy,im_posx,im_time,head] = read_ISM(fname);
 
 ind             = im_posy<=head.ImgHdr_PixY;
 im_tcspc        = im_tcspc(ind);
@@ -97,7 +98,7 @@ max_bin = head.max_bin;
 bin_factor = 20;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 100;
+lt_cut_off = 10;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm; diode [600/700], TiSa [250]
@@ -125,7 +126,7 @@ lt_end      = floor(tail_end / bin_factor); %floor or ciel?
 tcspc_tail_l = (lt_end - lt_start) * lt_bin_l;
 
 % TCSPC tail start in ns
-tcspc_start = tail_start * tcspc_bin_l;
+tail_start_time = tail_start * tcspc_bin_l;
 
 % Max Lifetime in ns
 max_lt = 8;
@@ -241,8 +242,8 @@ if (lifetime)
     ISM_lt_rgb      = zeros([ISM_size 3]);
 
     % generate decay patterns from FL selecion[1.37 2.36 3.0]
-    pattern_tau = [0.6 1.3 3.7 inf];
-    pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tcspc_start, tail_bin);
+    pattern_tau = [0.34 1.16 3.38 inf];
+    pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tail_start_time, tail_bin);
 
     ISM_lt_short_name   = compose('%s lt short %0.1f ns', ISM_name, pattern_tau(1)); %1.37
     ISM_lt_middle_name  = compose('%s lt middle %0.1f ns', ISM_name, pattern_tau(2)); %2.37
@@ -286,12 +287,12 @@ if (lifetime)
     fprintf('lifetime fit \n');
 
     %tail fit via pattern matching
-    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, tail_t-tcspc_start, tail_bin, max_lt);
+    [ISM_lt_img,~]  = lt_patternMatching(ISM_lt, tail_t-tail_start_time, tail_bin, max_lt);
 
 
     %plot and save image
     ISM_lt_img  = reshape(ISM_lt_img, ISM_size);
-    lt_img_plot(ISM_lt_img, ISM_img, c_map, lt_cut_off, [0.1 2], 'Lifetime', LT_name, 2, IM_R, 1)
+    lt_img_plot(ISM_lt_img, ISM_img, c_map, lt_cut_off, [0.8 3], 'Lifetime', LT_name, 2, IM_R, 1)
 
     h = figure;
     ax = axes(h);
@@ -300,7 +301,7 @@ if (lifetime)
     file_name = append(LT_name, '_distISM', '.png');
     exportgraphics(ax, file_name,'Resolution',600)
 
-%     ISM_lt_amp_img = reshape(ISM_lt_amp, [sum_size(1), sum_size(2), 4]);
+%     ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
 %     img_plot(ISM_lt_amp_img(:,:,1), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 1);
 %     img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_lt_middle_name{1}, 'OG: PSD95', 4, IM_R, reso_line_ISM, 0, 1);
 %     img_plot(ISM_lt_amp_img(:,:,3), c_green, ISM_lt_long_name{1}, 'Alexa: GFAP', 4, IM_R, reso_line_ISM, 0, 1);
@@ -328,6 +329,46 @@ if (lifetime)
 %     rgb_img_plot(test_rgb, LT_name, 'Red: GFAP, Green: SYT, Blue: PSD95', 4, IM_R, 0)
 end
 
+%% Single Expoential lifetime
+if(s_lifetime)
+    %get pixel lifetimes via MLE pattern matching
+    ISM_lt_img = get_single_lifetime(ISM_img,ISM_lin,...
+        im_tcspc = im_tcspc, tail_t = tail_t, tail_bin = tail_bin,...
+        tail_start_time = tail_start_time, tcspc_t = tcspc_t,...
+        max_lt = max_lt, lt_cut_off = lt_cut_off);
+
+    lt_img_plot(ISM_lt_img, ISM_img, c_map, lt_cut_off, [0.8 3], 'Lifetime', LT_name, 2, IM_R, 1)
+    
+    % Figure for analysis
+    h = figure;
+    ax = axes(h);
+    % Lifetime distribution
+    histogram(ISM_lt_img(ISM_lt_img > 0.1 & ISM_lt_img < max_lt),linspace(0.01,max_lt,500),'Normalization','count')
+
+    file_name = append(LT_name, '_distISM', '.png');
+    exportgraphics(ax, file_name,'Resolution',600)
+
+    %over all tcspc fit
+    [count, ~]   = histcounts(im_tcspc, tcspc_t);
+    count = count./sum(count);
+    [over_all_lt,over_all_back]  = lt_patternMatching(count, tail_t-tail_start_time, tail_bin, max_lt);
+    disp(over_all_lt)
+    
+    yy = pfun_monoexpBG(over_all_lt, over_all_back, tail_t, tail_bin);
+    h = figure;
+    ax = axes(h);
+    hold on
+    p1 = plot(ax,tail_t-tail_start_time, count, 'o', 'MarkerSize', 10, 'Color', '#EDB120');
+    p2 = plot(ax,tail_t-tail_start_time, yy.','g-','LineWidth',2);
+    set(ax, 'YScale', 'log')
+    legend([p1 p2],{'tail decay','patternmatching'})
+    xlim('padded')
+    ylim('padded')
+    xlabel('time [ns]')
+    ylabel('normalized count')
+    title('TCSPC decay of an individual pixel');
+    set(findall(h,'-property','FontSize'),'FontSize',15)
+end
 %% SOFI
 if (sofi)
 
@@ -349,26 +390,26 @@ ylabel('count')
 
 [count, edges]   = histcounts(im_tcspc, tcspc_t);
 
-[tripple_amp,tau] = tripple_exp(tail_t.'-tcspc_start,count.',0);
+[tripple_amp,tau] = tripple_exp(tail_t.'-tail_start_time,count.',0);
 disp('over all tau and amp')
 disp(tau)
 disp(tripple_amp./sum(tripple_amp))
 
-xx = tail_t-tcspc_start;
+xx = tail_t-tail_start_time;
 count = count./sum(count);
-[over_all_lt,over_all_back]  = lt_patternMatching(count, tail_t-tcspc_start, tail_bin, max_lt);
+[over_all_lt,over_all_back]  = lt_patternMatching(count, tail_t-tail_start_time, tail_bin, max_lt);
 disp(over_all_lt)
 
 h = figure;
 ax = axes(h);
 
 ax1 = subplot(3,4,[1,2,3,5,6,7,9,10,11]);
-p1 = plot(tail_t-tcspc_start, count, 'o', 'MarkerSize', 10, 'Color', '#EDB120');
+p1 = plot(tail_t-tail_start_time, count, 'o', 'MarkerSize', 10, 'Color', '#EDB120');
 legend(p1, 'tail decay')
 hold on
 
 yy = pfun_monoexpBG(over_all_lt, over_all_back, tail_t, tail_bin);
-p2 = plot(tail_t-tcspc_start, yy.','g-','LineWidth',2);
+p2 = plot(tail_t-tail_start_time, yy.','g-','LineWidth',2);
 legend(p2, 'pattern Matching')
 
 amp1 = tripple_amp(1);
@@ -400,21 +441,21 @@ title('TCSPC decay of an individual pixel');
 set(findall(h,'-property','FontSize'),'FontSize',15)
 
 ax2 = subplot(3,4,4);
-plot(tail_t-tcspc_start, pattern(:,1)./max(pattern(:,1)),'b-')
+plot(tail_t-tail_start_time, pattern(:,1)./max(pattern(:,1)),'b-')
 set(ax2, 'YScale', 'log')
 ylim([1e-4 1])
 xlim([0 20])
 title('short');
 
 ax3 = subplot(3,4,8);
-plot(tail_t-tcspc_start, pattern(:,2)./max(pattern(:,2)),'r-')
+plot(tail_t-tail_start_time, pattern(:,2)./max(pattern(:,2)),'r-')
 set(ax3, 'YScale', 'log')
 ylim([1e-4 1])
 xlim([0 20])
 title('middle');
 
 ax4 = subplot(3,4,12);
-plot(tail_t-tcspc_start, pattern(:,3)./max(pattern(:,3)),'g-')
+plot(tail_t-tail_start_time, pattern(:,3)./max(pattern(:,3)),'g-')
 set(ax4, 'YScale', 'log')
 ylim([1e-4 1])
 xlim([0 20])
