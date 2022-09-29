@@ -7,6 +7,7 @@ clc
 
 lifetime    = 0;
 s_lifetime  = 1;
+t_lifetime  = 0;
 deconv      = 0;
 sofi        = 0;
 %% Loadind data
@@ -37,7 +38,7 @@ c_red       = interp1(rl, r2, lambda);
 c_blue      = interp1(bl, b2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220928\neurons_g1_alexa488_psd95_one_008.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220927\neurons_g1_cy2_syt1_two_008.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
 
@@ -332,19 +333,21 @@ end
 %% Single Expoential lifetime
 if(s_lifetime)
     %get pixel lifetimes via MLE pattern matching
-    ISM_lt_img = get_single_lifetime(ISM_img,ISM_lin,...
+    lt_img = get_single_lifetime(ISM_img,ISM_lin,...
         im_tcspc = im_tcspc, tail_t = tail_t, tail_bin = tail_bin,...
         tail_start_time = tail_start_time, tcspc_t = tcspc_t,...
         max_lt = max_lt, lt_cut_off = lt_cut_off);
 
-    lt_img_plot(ISM_lt_img, ISM_img, c_map, lt_cut_off, [0.8 3], 'Lifetime', LT_name, 2, IM_R, 1)
+    %plot pxel wise lt values scaled with image intensity
+    lt_img_plot(lt_img, ISM_img, c_map, lt_cut_off, [0.1 2], 'Lifetime', LT_name, 2, IM_R, 1)
     
     % Figure for analysis
     h = figure;
     ax = axes(h);
     % Lifetime distribution
-    histogram(ISM_lt_img(ISM_lt_img > 0.1 & ISM_lt_img < max_lt),linspace(0.01,max_lt,500),'Normalization','count')
-
+    histogram(lt_img(lt_img > 0.1 & lt_img < max_lt),linspace(0.01,max_lt,500),'Normalization','count')
+    xlabel('lifetime [ns]')
+    ylabel('# pixels')
     file_name = append(LT_name, '_distISM', '.png');
     exportgraphics(ax, file_name,'Resolution',600)
 
@@ -368,6 +371,14 @@ if(s_lifetime)
     ylabel('normalized count')
     title('TCSPC decay of an individual pixel');
     set(findall(h,'-property','FontSize'),'FontSize',15)
+end
+
+%% Tripple lifetime unmixing
+if(t_lifetime)
+    % generate decay patterns from FL selecion[1.37 2.36 3.0]
+    pattern_tau = [0.34 1.16 3.38 inf];
+    pattern = pfun_monoexpBG(pattern_tau,0,tail_t-tail_start_time,tail_bin);
+
 end
 %% SOFI
 if (sofi)

@@ -2,12 +2,11 @@ function [lt_img] = get_single_lifetime(img,lin,options)
 %GET_SINGLE_LIFETIME Calculates single exponential decay lifetime image via
 %MLE pattern matching from single phoon data
 
-% im_tcspc,tail_t,tail_bin,tcspc_start,max_lt,lt_cut_off
 arguments
     img (:,:) double = checkerboard(256);
-    lin (:,:) double = ones(1e5,1)
+    lin (:,1) double = ones(1e5,1)
     %TCSPC channel of photons
-    options.im_tcspc
+    options.im_tcspc (:,1) double = ones(1e5,1)
     %edge time points of tail in ns
     options.tail_t (1,:) = ones(1,20);
     %length of tail bins in ns
