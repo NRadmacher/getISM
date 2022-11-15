@@ -10,7 +10,7 @@ arguments
     %edge time points of tail in ns
     options.tail_t (1,:) = ones(1,20);
     %length of tail bins in ns
-    options.tail_bin = 0.05;
+    options.tail_bin_l = 0.05;
     %tail start time in ns
     options.tail_start_time = 3;
     %tcspc bins for tail decay
@@ -19,6 +19,10 @@ arguments
     options.max_lt = 8;
     %Minimum number fo photons for fit
     options.lt_cut_off = 25;
+    %plot of analysis
+    options.ana_plt = true
+    %file name
+    options.fname = 'LT'
 end
 
 interval    = ceil(1.01* max(max(img)));
@@ -63,9 +67,50 @@ fprintf('lifetime pattern matching \n');
 
 %tail fit via pattern matching
 [lt_img,~]  = lt_patternMatching(lt, options.tail_t-options.tail_start_time,...
-    options.tail_bin, options.max_lt);
+    options.tail_bin_l, options.max_lt);
 
 %fit lin index to 2d array
 lt_img  = reshape(lt_img, img_size);
 
+if(options.ana_plt)
+    % Normalised monoexponetial decay with background
+    pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
+    pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
+
+    % Figure for analysis
+    h = figure;
+    ax = axes(h);
+    % Lifetime distribution
+    histogram(lt_img(lt_img > 0.1 & lt_img < options.max_lt),linspace(0.01,options.max_lt,500),'Normalization','count')
+    xlabel('lifetime [ns]')
+    ylabel('# pixels')
+    m = mean(lt_img(lt_img > 0.1 & lt_img < options.max_lt));
+    standif = std(lt_img(lt_img > 0.1 & lt_img < options.max_lt));
+    fit_stg = sprintf(' %.2g \x00B1 %.2g', m, standif);
+    legend(fit_stg, 'Location', 'northeast')
+    file_name = append(options.fname, '_distISM', '.png');
+    exportgraphics(ax, file_name,'Resolution',600)
+    
+    %over all tcspc fit
+    [count, ~]   = histcounts(options.im_tcspc, options.tcspc_t);
+    count = count./sum(count);
+    xx = options.tail_t-options.tail_start_time;
+    [over_all_lt,over_all_back]  = lt_patternMatching(count, xx, options.tail_bin_l, options.max_lt);
+    disp(over_all_lt)
+    
+    yy = pfun_monoexpBG(over_all_lt, over_all_back, options.tail_t, options.tail_bin_l);
+    h = figure;
+    ax = axes(h);
+    hold on
+    p1 = plot(ax,xx, count, 'o', 'MarkerSize', 10, 'Color', '#EDB120');
+    p2 = plot(ax,xx, yy.','g-','LineWidth',2);
+    set(ax, 'YScale', 'log')
+    legend([p1 p2],{'tail decay','patternmatching'})
+    xlim('padded')
+    ylim('padded')
+    xlabel('time [ns]')
+    ylabel('normalized count')
+    title('TCSPC decay of an individual pixel');
+    set(findall(h,'-property','FontSize'),'FontSize',15)
+end
 end

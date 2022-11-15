@@ -26,6 +26,7 @@ n_pixel     = numel(img(:));
 img_size    = size(img);
 lt_amp      = zeros(n_pixel, 4);
 n_events    = numel(lin);
+ISM_lt_rgb  = zeros([img_size 3]);
 
 lt_short_name   = compose('%s lt short %0.1f ns', options.name, pattern_tau(1)); %1.37
 lt_middle_name  = compose('%s lt middle %0.1f ns', options.name, pattern_tau(2)); %2.37
@@ -78,7 +79,5 @@ lt_rgb(:,:,3) = mat2gray(lt_amp_img(:,:,1),[1 73]);%blue
 img_plot(lt_rgb(:,:,3), c_blue, lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, reso_line_ISM, 0, 0);
 img_plot(lt_rgb(:,:,1), c_red, lt_middle_name{1}, 'OG: PSD95', 4, IM_R, reso_line_ISM, 0, 0);
 img_plot(lt_rgb(:,:,2), c_green, lt_long_name{1}, 'Alexa: GFAP', 4, IM_R, reso_line_ISM, 0, 0);
-
-
 
 end
