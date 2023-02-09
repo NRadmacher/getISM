@@ -107,12 +107,12 @@ function deconvolve(options)
 end
 
 function print_image(options)
-    reso_line = [[107 107]; [30 65]];
+    reso_line = [[42 92]; [98 98]];
     % Plot and save using img_plot
     img_plot(handles.decon_img, options.c_map,...
             options.s_name, options.t_name, ...
             options.sb_lenght, options.IM_R, ...
-            option.pix_bin, reso_line, options.reso, options.save)
+            options.pix_bin, reso_line, options.reso, options.save)
 end
 
 function set_dampener(options, event)

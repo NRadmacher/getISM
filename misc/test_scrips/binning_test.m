@@ -11,8 +11,8 @@ xl = 1:255/7:256;%like linespace but stepsize
 yl = [[0 0 0]; [0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]; [1 0 1]];
 lambda   = 1:256;
 spectrum = interp1(xl, yl, lambda);
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\221025\neurons_g4_mix_011.ptu';
-dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\cd_001.ptu';
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230113\neurons_g4_mix_two_002.ptu';
+dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210909\IRF_DC_001.ptu';
 
 tmp_name = strsplit(fname, '\');
 date = tmp_name{end-1};
@@ -67,7 +67,7 @@ xsize = size(ISM_img,2);
 handles.fig = figure;
 handles.slider = uicontrol( 'Style','slider',...
                             'Position',[0 0 500 20],...
-                            'SliderStep', [0.00625, 0.1],...
+                            'SliderStep', [0.0025, 0.1],...
                             'Min',0.80,'Max',1.2,'Value',1);
 handles.Listener = addlistener(handles.slider,'Value','PostSet',@(s,e) deconvolve(handles, ISM_posx, ISM_posy, s_pixl_x, s_pixl_y));
 % axis off;

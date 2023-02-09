@@ -1,7 +1,7 @@
 function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, pix_bin, reso_line, reso, save)
 %IMG_PLOT plot 2D image with color bar and scale and save to dir
 
-% roi = [50 1; 124 75];
+roi = [0 0; 0 0];
 % img = img( roi(1,2):roi(2,2), roi(1,1) : roi(2,1));
 
 %cut artefacts at edges
@@ -57,27 +57,34 @@ if reso
     dyb = yb2 - yb1;
     
 %     Set long and short "differnec" for sampeling along intensity line
-    if(dxb > dyb)
-        lb1 = xb1;
-        lb2 = xb2;
-        dlb = dxb;
-        sb1 = yb1;
-        sb2 = yb2;
-        dsb = dxb;
-    else
-        lb1 = yb1;
-        lb2 = yb2;
-        dlb = dyb;
-        sb1 = xb1;
-        sb2 = xb2;
-        dsb = dxb;
-    end
+%     if(dxb > dyb)
+%         lb1 = xb1;
+%         lb2 = xb2;
+%         dlb = dxb;
+%         sb1 = yb1;
+%         sb2 = yb2;
+%         dsb = dyb;
+%     else
+%         lb1 = yb1;
+%         lb2 = yb2;
+%         dlb = dyb;
+%         sb1 = xb1;
+%         sb2 = xb2;
+%         dsb = dxb;
+%     end
     %finde coordinats along intensity line
-    if(dsb ==0) %take care of vertical and horzontal lines
-        llb     = lb1:1:lb2;
-        ssb     = zeros(1,dlb + 1) + sb1;
-        lb      = IM_R;
-        r_bead  = (0:dlb) * lb;
+    if(dyb == 0 || dxb == 0) %take care of vertical and horzontal lines
+        if(dyb == 0)
+            xb     = xb1:1:xb2;
+            yb     = zeros(1,dxb + 1) + yb1;
+            lb      = IM_R;
+            r_bead  = (0:dxb) * lb;
+        else
+            yb     = yb1:1:yb2;
+            xb     = zeros(1,dyb + 1) + xb1;
+            lb      = IM_R;
+            r_bead  = (0:dyb) * lb;
+        end
     else %itensity line is  hypotenuse llb and ssb are the legs
         llb = lb1:1:lb2;
         ssb = ceil( dsb/dlb * (0:dlb) + sb1);
@@ -86,7 +93,7 @@ if reso
         r_bead  = (0:dlb) * lb;
     end
     
-    lin = sub2ind(size(img), llb, ssb);
+    lin = sub2ind(size(img), yb, xb);
     bead_sum = img(lin);
     bead_sum = bead_sum;%/max(bead_sum);
 
@@ -111,8 +118,8 @@ if reso
 
     fit_stg = sprintf(' %g \x00B1 %g nm', fwhm*1000, fwhm_err*1000);
 
-
-    r = figure; 
+    r = figure;
+    r_ax = axes(r);
     plot(fitt, r_bead, bead_sum,'bx')
     set(findall(r,'-property','FontSize'),'FontSize',17)
     set(findall(r,'-property', 'MarkerSize'), 'MarkerSize', 12)
@@ -128,6 +135,12 @@ end
 if save
     file_name = append(name,'.png');
     exportgraphics(ax, file_name,'Resolution',600)
+   
+    if reso
+        file_name = append(name,'_reso.png');
+        exportgraphics(r_ax, file_name,'Resolution',600)
+    end
+
     spath = append(pwd,'\',name, '.tiff');
 
     if exist(spath, 'file')==2
@@ -135,9 +148,7 @@ if save
     end
 
     metadata = createMinimalOMEXMLMetadata(img);
-
     pix_size = IM_R/pix_bin;
-
     pixelSize = ome.units.quantity.Length(java.lang.Double(pix_size), ome.units.UNITS.MICROMETER);
     metadata.setPixelsPhysicalSizeX(pixelSize, 0);
     metadata.setPixelsPhysicalSizeY(pixelSize, 0);

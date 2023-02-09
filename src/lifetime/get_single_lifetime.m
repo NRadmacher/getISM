@@ -81,11 +81,13 @@ if(options.ana_plt)
     h = figure;
     ax = axes(h);
     % Lifetime distribution
-    histogram(lt_img(lt_img > 0.1 & lt_img < options.max_lt),linspace(0.01,options.max_lt,500),'Normalization','count')
+    lt_hist = lt_img(img > options.lt_cut_off);
+    lt_hist = lt_hist(lt_hist > 0.1 & lt_hist < options.max_lt);
+    histogram(lt_hist,linspace(0.01,options.max_lt,500),'Normalization','count')
     xlabel('lifetime [ns]')
     ylabel('# pixels')
-    m = mean(lt_img(lt_img > 0.1 & lt_img < options.max_lt));
-    standif = std(lt_img(lt_img > 0.1 & lt_img < options.max_lt));
+    m = mean(lt_hist);
+    standif = std(lt_hist);
     fit_stg = sprintf(' %.2g \x00B1 %.2g', m, standif);
     legend(fit_stg, 'Location', 'northeast')
     file_name = append(options.fname, '_distISM', '.png');
