@@ -21,6 +21,9 @@
 *.mlappinstall
 *.mltbx
 
+# Matlab fits
+*.sfit
+
 # Generated helpsearch folders
 helpsearch*/
 
