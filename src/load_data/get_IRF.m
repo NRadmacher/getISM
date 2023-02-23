@@ -5,15 +5,21 @@ if (nargin<1)
    %TO DO find way to save and fast access! 
 end
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220204\irf_2ph_014.ptu';
-% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220106\irf_007.ptu';
+% fname = 'D:\PHD\Data\2022\220816\irf_ex470nm_004.ptu';
 % dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210909\IRF_DC_001.ptu';
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230130\af647_og488_KI_pmt_002.ptu';
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230130\irf_pmt_011.ptu';
 
 [im_chan,im_tcspc,~,head] = read_FCS(fname);
 
-im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 5500);
+im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
 
-bin_factor = 20;
+bin_factor = 1;
+
+if(sum(head.HWInpChan_Enabled,"all") > 23)
+    title_name = 'MPMT';
+else
+    title_name = 'SPAD-Array';
+end
 
 %% find fwhm and max
 % max_bin = round(1/head.TTResult_SyncRate /head.HW_BaseResolution);
@@ -33,6 +39,9 @@ t_count = numel(im_tcspc);
 fprintf('FWHM: %d, Max@ %d\n',fwhm, indMax );
 %% plot sum irf and for eatch pixel 
 if(plt)
+    time_R = mean(head.MeasDesc_Resolution);
+    time = 1:bin_factor:max_bin;
+    time = time.* (time_R *1e9);
     
     tmp_name = strsplit(fname, '\');
     date = tmp_name{end-1};
@@ -42,27 +51,31 @@ if(plt)
     img_name = append(date,' ',img_name);
     img_name = strrep(img_name,'_',' ');
     
-    time_R = mean(head.MeasDesc_Resolution);
-    figure
+    h = figure;
+    ax = axes(h);
     hold on
-    plot(count, '.')
-    set(gca, 'YScale', 'log')
+    plot(time,count, '.','LineStyle','-','Marker','none',LineWidth=1)
+    set(ax, 'FontSize', 13, 'FontWeight', 'bold', 'YScale', 'log')
+    legende_txt = append('IRF', newline, 'FWHM: ', string(fwhm*time_R*1e12), ' ps');
+    legend(legende_txt, 'Location', 'northeast')
+    grid('on')
+    xlabel(sprintf('time [ns]'));
+    ylabel(sprintf('count'));
+    xlim([0 10])
+    title(title_name)
 
-    time = 1:bin_factor:max_bin;
-    time = time.* (time_R *1e9);
     figure
     hold on
     for i = 1:32
-        if(i == 11 || i == 15)
+%         if(i == 11 || i == 15)
         [c_count, ~] = histcounts(im_tcspc(im_chan == i-1), 1:bin_factor:max_bin+1);
     %     c_count = c_count/max(c_count);
         chr = int2str(i-1);
         plot(time,c_count, 'DisplayName',chr)
-        end
+%         end
     end
     % xlim([0 3])
     title(img_name);
-    legend
 end
 
 %save irf 

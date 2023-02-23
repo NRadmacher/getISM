@@ -24,7 +24,7 @@ arguments
     %file name
     options.fname
     %plot of analysis
-    options.ana_plt = false
+    options.ana_plt = false;
 end
 
 interval    = ceil(1.01* max(max(img)));

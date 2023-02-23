@@ -12,7 +12,7 @@ s_lifetime  = 0;
 d_lifetime  = 0;
 t_lifetime  = 0;
 q_lifetime  = 0;
-deconv      = 0;
+deconv      = 1;
 sofi        = 0;
 add_plt     = 0;
 %% Loadind data
@@ -45,8 +45,8 @@ c_blue      = interp1(bl, b2, lambda);
 c_yellow    = interp1(bl, y2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230207\neurons_g4_af647_gm130_one_pmt_006.ptu';
-dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230203\dc_m15_pmt_001.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230202\tetra_pmt_026.ptu';
+dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230208\dc_m15_pmt_002.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
 
 %Image title and name from file name
@@ -77,7 +77,7 @@ im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
 
 %Dark count in count per second
-[dc, bin_dc] = get_DC(dcname,1);
+[dc, bin_dc] = get_DC(dcname,0);
 
 %get IRF to set tail for tailfit
 % [fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
@@ -113,7 +113,7 @@ max_bin = head.max_bin;
 bin_factor = 20;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 100;
+lt_cut_off = 10;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm; diode [600/700,275], TiSa [250], SEPIA [1700]
@@ -131,11 +131,13 @@ max_lt = 8;
 pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
 pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
-pixel_img   = histcounts(im_chan,0:n_pixl);
-fiber_img   = zeros(37,1);
-fiber_img(fiber_code()+1)   = pixel_img;
-hex_plot(fiber_img,hot)
-
+%put this in hex plot
+% pixel_img   = histcounts(im_chan,0:n_pixl);
+% fiber_img   = zeros(37,1);
+% fiber_img(fiber_code()+1)   = pixel_img;
+% hex_plot(fiber_img, hot)
+% 
+% pmt_plot(im_chan, n_pixl, hot)
 %% Multiple tau scale
 
 m_tau = 0;
@@ -221,12 +223,16 @@ img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, 'ISM'
 
 %% manuel lucy Richerson decon
 if(deconv)
+
+    W_ISM_img = f_reweighting(max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R);
+    img_plot(W_ISM_img, hot, ISM_name, 'ISM FW', 1, IM_R, ISM_binning, reso_line_ISM, 0, 0);
     PSF_file = matfile('PSF.m');
     psf      = PSF_file.im;
-    psf      = psf/sum(psf, 'all');
-    
     EID_file = matfile('EID.m');
     eid      = EID_file.im;
+
+    [eid, psf] = get_psf([0 0.8], 0.05);
+    psf      = psf/sum(psf, 'all');
     eid      = eid/sum(eid, 'all');
     
     manuel_decon(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), eid, ...
@@ -237,79 +243,8 @@ if(deconv)
 end
 
 %% Lifetime Image
-if (lifetime)
 
-    interval        = ceil(1.01* max(max(ISM_img)));
-    n_pixel_ISM     = prod(ISM_size);
-    ISM_lt          = zeros(n_pixel_ISM, numel(tail_t));
-    ISM_lt_amp      = zeros(n_pixel_ISM, 4);
-    ISM_lt_rgb      = zeros([ISM_size 3]);
-
-    % generate decay patterns from FL selecion[1.37 2.36 3.0]
-    pattern_tau = [1.4 2.4 3.4 inf];
-    pattern = pfun_monoexpBG(pattern_tau, 0, tail_t-tail_start_time, tail_bin_l);
-
-    ISM_lt_short_name   = compose('%s lt short %0.1f ns', ISM_name, pattern_tau(1)); %1.37
-    ISM_lt_middle_name  = compose('%s lt middle %0.1f ns', ISM_name, pattern_tau(2)); %2.37
-    ISM_lt_long_name    = compose('%s lt long %0.1f ns', ISM_name, pattern_tau(3)); % 3.0
-
-    h = waitbar(0,'binning');
-    %find all photons in one ISM pixel, by seaching in an interval of max count
-    %lengh + 1 
-    lower = 1;
-    upper = interval;
-    
-    % Sort for faster seache
-    [ISM_lin, sort_index] = sort(ISM_lin);
-    im_tcspc    = im_tcspc(sort_index);
-
-    for i = 1:n_pixel_ISM
-       [y,x]    = ind2sub(ISM_size,i);
-       ind      = find(ISM_lin(lower:upper) == i);
-       if ~isempty(ind)
-           if(ISM_img(y,x) >= lt_cut_off)
-               [count, ~]   = histcounts(im_tcspc(lower + ind-1), tcspc_t);
-               ISM_lt_amp(i,:) = lsqnonneg(pattern, count.');
-           end
-           % set new upper edge to lower plus interval length
-           upper    = min(lower + ind(end) + interval, n_events);
-           % set lower edge to last found puls 1
-           lower    = lower + ind(end);
-       else
-           % set new searche boundarys. because nothing was found keep
-           % lower extend upper
-           upper    = min(upper + interval, n_events);
-       end
-       if (mod(i,n_pixel_ISM/100) < 1)
-            waitbar(i/n_pixel_ISM,h)
-       end
-    end
-    close(h);
-    fprintf('lifetime fit \n');
-
-    ISM_lt_amp_img = reshape(ISM_lt_amp, [ISM_size(1), ISM_size(2), 4]);
-    img_plot(ISM_lt_amp_img(:,:,1), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,2), c_red, ISM_lt_middle_name{1}, 'Alexa: TOMM20', 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    img_plot(ISM_lt_amp_img(:,:,3), c_green, ISM_lt_long_name{1}, 'OG: GFAP', 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    
-    % adjust contrast
-    P = prctile(ISM_lt_amp_img(ISM_lt_amp_img(:,:,2)>0),[10, 95], 'all');
-    ISM_lt_rgb(:,:,1) = adapthisteq(ISM_lt_amp_img(:,:,2)./max(ISM_lt_amp_img(:,:,2),[],'all'),'ClipLimit',0.005);%red
-
-    P = prctile(ISM_lt_amp_img(ISM_lt_amp_img(:,:,3)>0),[10, 99.7], 'all');
-    ISM_lt_rgb(:,:,2) = adapthisteq(ISM_lt_amp_img(:,:,3)./max(ISM_lt_amp_img(:,:,3),[],'all'),'ClipLimit',0.005);%green
-
-    P = prctile(ISM_lt_amp_img(ISM_lt_amp_img(:,:,1)>0),[10, 99.7], 'all');
-    ISM_lt_rgb(:,:,3) = adapthisteq(ISM_lt_amp_img(:,:,1)./max(ISM_lt_amp_img(:,:,1),[],'all'),'ClipLimit',0.005);%blue
-
-    img_plot(ISM_lt_rgb(:,:,3), c_blue, ISM_lt_short_name{1}, 'Cy2: SYT 1', 4, IM_R, ISM_binning, reso_line_ISM, 0, 0);
-    img_plot(ISM_lt_rgb(:,:,1), c_red, ISM_lt_middle_name{1}, 'Alexa: TOMM20', 4, IM_R, ISM_binning, reso_line_ISM, 0, 0);
-    img_plot(ISM_lt_rgb(:,:,2), c_green, ISM_lt_long_name{1}, 'OG: GFAP', 4, IM_R, ISM_binning, reso_line_ISM, 0, 0);
-
-    comb_name = compose('%s multicolor %0.1f %0.1f %.01f', LT_name, pattern_tau(1), pattern_tau(2), pattern_tau(3));
-
-    rgb_img_plot(ISM_lt_rgb, comb_name{1}, 'Red: PSD95, Green: GFAP, Blue: SYT 1', 4, IM_R, 1)
-
+%TODO see if thismakes sense
 %     test_img = ISM_lt_amp_img(:,:,1:3);
 %     test_img = ISM_lt_amp_img./repmat(max(ISM_lt_amp_img,[],[1 2]), [size(ISM_lt_amp_img,[1 2]) 1]);
 %     test_img = test_img(:,:,1:3);
@@ -319,7 +254,6 @@ if (lifetime)
 %     test_rgb = tensorprod(test_img,test_color,3,1);
 %     test_rgb = test_rgb./repmat(max(test_rgb,[],[1 2]), [size(test_rgb,[1 2]) 1]);
 %     rgb_img_plot(test_rgb, LT_name, 'Red: GFAP, Green: SYT, Blue: PSD95', 4, IM_R, 0)
-end
 
 %% Single Expoential lifetime
 if(s_lifetime)
@@ -415,8 +349,8 @@ if(q_lifetime)
     img_plot(red_ISM_img, hot, ISM_name, 'red ISM', 4, IM_R, ISM_binning, reso_line_ISM, 0, 0);
 
     %lifetiem analysis
-    [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(335, 4982, time_R, bin_factor);
-    blue_pattern_tau = [1.5 3.4 inf];
+    [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(670, 5000, time_R, bin_factor);
+    blue_pattern_tau = [1.5 3.6 inf];
     blue_pattern = pfun_monoexpBG(blue_pattern_tau,0,tail_t-tail_start_time,tail_bin_l);
 
     % Struckture and Fluorophore name
@@ -435,8 +369,8 @@ if(q_lifetime)
         name = names, fname = ISM_name);
     
     %plot individual strucktures
-    img_plot(lt_amp_img(:,:,1), c_blue, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    img_plot(lt_amp_img(:,:,2), c_green, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+    img_plot(medfilt2(lt_amp_img(:,:,1)), c_blue, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+    img_plot(medfilt2(lt_amp_img(:,:,2)), c_green, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
 
 % %     get pixel lifetimes via MLE pattern matching
 %     lt_img = get_single_lifetime(blue_ISM_img, blue_ISM_lin, ...
@@ -445,12 +379,12 @@ if(q_lifetime)
 %         max_lt = max_lt, lt_cut_off = lt_cut_off);
 % 
 %     %plot pxel wise lt values scaled with image intensity
-%     lt_img_plot(lt_img, blue_ISM_img, c_map, lt_cut_off, [0.2 4], 'Lifetime', LT_name, 4, IM_R, 1) 
+%     lt_img_plot(lt_img, blue_ISM_img, c_map, lt_cut_off, [0.1 4], 'Lifetime', LT_name, 4, IM_R, 1) 
 
 
     %lifetiem analysis red
-    [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(5373, 9990, time_R, bin_factor);
-    red_pattern_tau = [1.7 3.8 inf];
+    [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(5700, 9990, time_R, bin_factor);
+    red_pattern_tau = [2.4 4.2 inf];
     red_pattern = pfun_monoexpBG(red_pattern_tau,0,tail_t-tail_start_time,tail_bin_l);
 
     % Struckture and Fluorophore name
@@ -469,22 +403,27 @@ if(q_lifetime)
         name = names, fname = ISM_name);
     
     %plot individual strucktures
-    img_plot(lt_amp_img(:,:,1), c_yellow, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    img_plot(lt_amp_img(:,:,2), c_red, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+    img_plot(medfilt2(lt_amp_img(:,:,1)), c_yellow, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+    img_plot(medfilt2(lt_amp_img(:,:,2)), c_red, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
 
-%     get pixel lifetimes via MLE pattern matching
+%     manuel_decon(medfilt2(lt_amp_img(:,:,2)), eid, ...
+%                 c_map = hot, s_name = lt_long_name{1}, ...
+%                 t_name = long_title, ...
+%                 sb_lenght = 1, IM_R = IM_R, pix_bin = ISM_binning, ...
+%                 reso = 1, save = 1);
+% 
+% %     get pixel lifetimes via MLE pattern matching
 %     lt_img = get_single_lifetime(red_ISM_img, red_ISM_lin, ...
 %             im_tcspc = red_tcspc, tail_t = tail_t, tail_bin_l = tail_bin_l,...
 %             tail_start_time = tail_start_time, tcspc_t = tcspc_t,...
 %             max_lt = max_lt, lt_cut_off = lt_cut_off, fname = LT_name);
-
-    %plot pxel wise lt values scaled with image intensity
+% 
+% %     plot pxel wise lt values scaled with image intensity
 %     lt_img_plot(lt_img, red_ISM_img, c_map, lt_cut_off, [0.2 4], 'Lifetime', LT_name, 4, IM_R, 1) 
 end
 
 %% SOFI
 if (sofi)
-
     ISM_SOFI_img = get_ISMSOFI(ISM_img, ISM_lin, im_time, head);
 
     img_plot(ISM_SOFI_img, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, ISM_binning, reso_line_conf, 0, 1);

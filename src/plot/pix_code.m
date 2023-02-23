@@ -36,4 +36,5 @@ pixel(30)   = 49;
 pixel(31)   = 46;
 pixel(32)   = 53;
 
+pixel = flip(pixel);
 end

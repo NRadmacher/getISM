@@ -50,5 +50,7 @@ set(gca,'DataAspectRatio', [1,1,1], ...
     'PlotBoxAspectRatio',[1 1 1])
 colorbar
 title(name)
+grid("off")
+axis("off")
 end
 

@@ -6,10 +6,10 @@ function [new_tcspc] = remove_MHH_offset(im_tcspc,im_chan,max_bin, hm_bin)
 m_time = zeros(32,1);
 
 for i = 1:32
-%     im_tcspc = im_tcspc(im_tcspc > 5000);
+%     im_tcspc = im_tcspc(im_tcspc <= 5000);
     [c_count, ~] = histcounts(im_tcspc(im_chan == i-1), 1:max_bin);
     % Find the half max value.
-    h_count = c_count(1:end);
+    h_count = c_count(1:4999);
     halfMax = (min(h_count) + max(h_count)) / 2;
     m_time(i) = find(h_count >= halfMax, 1, 'first' );
 end
