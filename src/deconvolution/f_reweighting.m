@@ -29,10 +29,6 @@ function W_ISM_img = f_reweighting(data, IM_R)
     %calculate reweighting factor
     Ffull = Fpsf./(eps + Fprod);
 %     Ffull(Fprod < eps) = 0;
-
-    figure
-    mesh(abs(Ffull));
-    axis square
     %only reweight Fourier amplitude not phase
     W_ISM_img = abs(ifft2(ifftshift(Ffull.*fa.*exp(1i.*fp))));
 

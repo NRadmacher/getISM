@@ -34,9 +34,6 @@ function W_ISM_img = f_reweighting_simple(data)
     % Re-weighting function
     ep = 0.015;
     w = ind./(OTF + ep.*k./km);
-    figure
-    mesh(w);
-    axis square
     % Back-transform the re-weighted FT
     tim = abs(ifft2(ifftshift(w.*fa.*exp(1i.*fp))));
     % cut out the original field of the data

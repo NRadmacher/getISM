@@ -12,7 +12,8 @@ s_lifetime  = 0;
 d_lifetime  = 0;
 t_lifetime  = 0;
 q_lifetime  = 0;
-deconv      = 1;
+deconv      = 0;
+frw         = 1;
 sofi        = 0;
 add_plt     = 0;
 %% Loadind data
@@ -58,6 +59,7 @@ img_name        = img_name{end-1};
 img_name        = append(date,' ',img_name);
 ISM_name        = append(img_name, ' ISM');
 ISM_docn_name   = append(img_name, ' ISM Decon');
+ISM_fw_name     = append(img_name, ' ISM Fourier-reweighted');
 colf_name       = append(img_name, ' no ISM');
 LT_name         = append(img_name, ' lt');
 
@@ -204,7 +206,7 @@ clear im_posy im_posx;
 
 %plot and save
 reso_line_conf = [[42 92]; [98 98]];
-img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, colf_name, 'confocal', 1, IM_R, 1, reso_line_conf, 1, 0);
+img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, colf_name, 'confocal', 1, IM_R, 1, reso_line_conf, 1, 1);
 
 %% ISM Image
 %crate ISM image
@@ -219,18 +221,10 @@ img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, colf_name, 'con
 
 %plot and save
 reso_line_ISM = [[42 92]; [98 98]];
-img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, 'ISM', 1, IM_R, ISM_binning, reso_line_ISM, 1, 0);
+img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, 'ISM', 1, IM_R, ISM_binning, reso_line_ISM, 1, 1);
 
 %% manuel lucy Richerson decon
 if(deconv)
-    reso_line_frw = [[42 92]; [97 97]];
-
-    W_ISM_img1 = f_reweighting( max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R);
-    img_plot(W_ISM_img1, hot, ISM_docn_name, 'ISM FW UE', 1, IM_R, ISM_binning, reso_line_frw, 1, 0);
-
-    W_ISM_img2 = f_reweighting_simple(max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0));
-    img_plot(W_ISM_img2, hot, ISM_docn_name, 'ISM FW U', 1, IM_R, ISM_binning, reso_line_frw, 1, 0);
-
     PSF_file = matfile('PSF.m');
     psf      = PSF_file.im;
     EID_file = matfile('EID.m');
@@ -245,6 +239,16 @@ if(deconv)
                 t_name = 'ISM + deconvolution', ...
                 sb_lenght = 1, IM_R = IM_R, pix_bin = ISM_binning, ...
                 reso = 1, save = 1);
+end
+
+%% Fourier-reweighted ISM
+
+if frw
+    reso_line_frw = [[42 92]; [97 97]];
+    %calculate Fourier-reweighted ISM image
+    W_ISM_img1 = f_reweighting( max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R);
+    %plot
+    img_plot(W_ISM_img1, hot, ISM_docn_name, 'Fourier-reweighted ISM', 1, IM_R, ISM_binning, reso_line_frw, 1, 1);
 end
 
 %% Lifetime Image
