@@ -57,7 +57,7 @@ rad = sqrt(xx.^2+yy.^2);
 psf = interp2(squeeze(phi(:,ind,:)),squeeze(rr(:,ind,:)),...
     squeeze(sum(abs(feld(:,ind,:,:)).^2,4)),psi,rad,'cubic');
 
-figure
-imagesc(xx(1,:),yy(:,1),psf);
-axis square
-title('PSF')
+% figure
+% imagesc(xx(1,:),yy(:,1),psf);
+% axis square
+% title('PSF')
