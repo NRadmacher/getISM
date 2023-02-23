@@ -225,9 +225,9 @@ img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, 'ISM'
 if(deconv)
     reso_line_frw = [[42 92]; [97 97]];
 
-    W_ISM_img1 = f_reweighting(max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R/2);
+    W_ISM_img1 = f_reweighting( max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R);
     img_plot(W_ISM_img1, hot, ISM_docn_name, 'ISM FW UE', 1, IM_R, ISM_binning, reso_line_frw, 1, 0);
-    
+
     W_ISM_img2 = f_reweighting_simple(max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0));
     img_plot(W_ISM_img2, hot, ISM_docn_name, 'ISM FW U', 1, IM_R, ISM_binning, reso_line_frw, 1, 0);
 
