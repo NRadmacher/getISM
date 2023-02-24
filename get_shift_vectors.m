@@ -17,20 +17,20 @@ fname = 'D:\PHD\Data\2022\220309\tetra_beads_015.ptu';
 %pc shift 
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210310\Tubulin_Dylight488_002.ptu';
 
-%sv for neurons sice 27.09.22
-% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220927\neurons_g1_cy2_syt1_one_005.ptu';
+%sv for neurons sice 27.09.22 SPAD
+fname = 'D:\PHD\Data\2022\220927\neurons_g1_cy2_syt1_one_005.ptu';
 
-%sc neurosn 01.01.23
+%sc neurosn 01.01.23 PMT ?
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230112\neurons_g1_cy2_syt1_two_004.ptu';
 
-%sv for neurons sice 28.09.22 200nm
+%sv for neurons sice 28.09.22 200nm SPAD
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220928\neurons_g1_alexa488_psd95_one_002.ptu';
 
-%for mpmt
+%for mpmt until 31.01.23
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\221117\neurons_g1_syt1_cy2_one_003.ptu';
 
 %mpmt setup adjusted 01.02.23
-% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230202\tetra_pmt_026.ptu';
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230202\tetra_pmt_026.ptu';
 
 % dcname = 'D:\PHD\Data\2022\220106\cd_001.ptu'; %SPAD
 dcname = 'D:\PHD\Data\2022\221117\dc_002.ptu'; %PMT
@@ -44,34 +44,23 @@ img_name        = append(date,' ',img_name);
 
 [im_chan,~,im_posy,im_posx,~, head] = read_ISM(fname);
 
-det_y =-1.*[-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2];
-A = ones(1,5).*sqrt(3);
-B = zeros(1,5);
-det_x = 1.*[A,A(1:end-1)./2,B,-A(1:end-1)./2,-A];
-
 %Dark count in count per second
-[dc, ~] = get_DC(dcname,1);
+[dc, ~] = get_DC(dcname,0);
 
 %number of pixels of the detector
 if(sum(head.HWInpChan_Enabled) > 23)
     n_pixl = 32;
-    title_name = 'MPMT shift verctors';
+    title_name = 'MPMT shift vectors';
+    save_name = 'MPMT_shift_vectors.m';
 else
     n_pixl = 23;
-    title_name = 'SPAD shift vectros';
+    title_name = 'SPAD shift vectors';
+    save_name = 'SPAD_shift_vectors.m';
 end
 
 %number of pixels in recorded image
 s_pixl_x = head.ImgHdr_PixX;
 s_pixl_y = head.ImgHdr_PixY;
-
-
-%Spad spatial resolution distan between PM pixels in µm
-SPAD_R = 23;
-
-%scan resolution step per pixel in µm
-IM_R = head.ImgHdr_PixResol;
-% IM_R = 50.6826 *1e-3;
 
 %ISM scale factor 
 alpha = (1 + 525/470);
@@ -82,7 +71,7 @@ im_posx = im_posx(ind);
 im_posy = im_posy(ind);
 
 
-%% 
+%% calculate shift vectors with image correlation and phase correlation
 im_pix = im_chan;
 
 im_posx = im_posx * s_pixl_x;
@@ -133,6 +122,7 @@ yc  = -1.*mean(shift_y_pc);
 % this is the shift vector for each channel
 sv_pc  = -[xc; yc]./alpha;
 
+%% plots
 figure
 axis equal
 hold on
@@ -163,10 +153,6 @@ numb = 0:n_pixl-1;
 txt = string(numb);
 plot(xc, yc,'xb','MarkerSize',10, 'LineWidth', 2, 'MarkerEdgeColor', 'green')
 text(xc+0.2, yc, txt)
-
-% plot(det_x, det_y,'xb','MarkerSize',10, 'LineWidth', 2, 'MarkerEdgeColor', 'red')
-% text(det_x+0.2, det_y, txt)
-
 set(ax,'DataAspectRatio', [1,1,1], ...
     'PlotBoxAspectRatio',[1 1 1]);
 ylabel('y shift [pixel]')
@@ -178,31 +164,11 @@ name = append(img_name, '_sv');
 file_name = append(name,'.png');
 exportgraphics(ax, file_name,'Resolution',600)
 
-% M_new = zeros(n_pixl,1);
-% for i = 1:n_pixl
-%         %shift in the image
-%         delta_r = IM_R*sqrt( (sv_ic(1,i).*alpha)^2 + (sv_ic(2,i).*alpha)^2);
-%         
-%         de_y_i = det_x(i);
-%         de_x_i = det_y(i);
-%         
-%         de_y_j = det_x(11);
-%         de_x_j = det_y(11);
-%         %shift on the detector
-%         delta_R = SPAD_R*sqrt((de_y_i - de_y_j)^2 + (de_x_i - de_x_j)^2);
-% 
-%         if delta_r ~= 0
-%             M_new(i) = delta_R/delta_r;
-%         end
-% end
-% 
-% M = mean(M_new(M_new ~= 0));
-% disp(M/alpha)
-% 
-pixel_img   = histcounts(im_chan,0:n_pixl);
-hex_plot(pixel_img,hot)
+% pixel_img   = histcounts(im_chan,0:n_pixl);
+% hex_plot(pixel_img,hot)
 
+%% save 
 shift_vector = sv_ic;
-save('shift_vector.m', 'shift_vector');
+save(save_name, 'shift_vector');
 end
 

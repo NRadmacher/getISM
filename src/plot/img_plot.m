@@ -153,7 +153,7 @@ if save
     metadata.setPixelsPhysicalSizeX(pixelSize, 0);
     metadata.setPixelsPhysicalSizeY(pixelSize, 0);
 
-    bfsave(img, spath,'metadata', metadata);
+%     bfsave(img, spath,'metadata', metadata);
 end
 
 end

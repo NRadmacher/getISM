@@ -46,8 +46,8 @@ c_blue      = interp1(bl, b2, lambda);
 c_yellow    = interp1(bl, y2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230202\tetra_pmt_026.ptu';
-dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230208\dc_m15_pmt_002.ptu';
+fname   = 'D:\PHD\Data\2022\220309\tetra_beads_015.ptu';
+dcname  = 'D:\PHD\Data\2022\220106\cd_001.ptu';
 irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
 
 %Image title and name from file name
@@ -93,8 +93,8 @@ s_pixl_y    = head.ImgHdr_PixY;
 IM_R = head.ImgHdr_PixResol;
 
 %ISM Binning UGO[1.02] PQ[1.04] UGO220302[1.01] 20nm[1.0075] g4mix
-%[1.01/1.0075]
-ISM_binning = 1.01;
+%[1.01/1.0075]pmt
+ISM_binning = 1.0;
 
 %temporal resolution of TCSPC in seconds
 time_R = mean(head.MeasDesc_Resolution);
@@ -183,7 +183,13 @@ end
 %% ISM reasigment
 fprintf('ISM reasigment\n');
 %shift vectors from file negativ sign is already included
-sv_file = matfile('shift_vector.m');
+if n_pixl == 23
+    sv_file_name = 'SPAD_shift_vectors.m';
+else
+    sv_file_name = 'MPMT_shift_vectors.m';
+end
+
+sv_file = matfile(sv_file_name);
 sv = sv_file.shift_vector;
 shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
@@ -198,29 +204,24 @@ clear shift_y shift_x;
 %generate confocal image
 [sum_img, sum_lin, sum_size] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
-% sum_img = sum_img(154:204,260:312);
-
 clear im_posy im_posx;
 %remoce dark count
 %sum_img = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
 
 %plot and save
-reso_line_conf = [[42 92]; [98 98]];
+reso_line_conf = [[106 106]; [28 78]];
 img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, colf_name, 'confocal', 1, IM_R, 1, reso_line_conf, 1, 1);
 
 %% ISM Image
 %crate ISM image
 [ISM_img, ISM_lin, ISM_size]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
 
-% ISM_img = ISM_img(156:206,262:312);
-
-% clear ISM_posy ISM_posx;
 %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
 %23 pixels, either the same pixel in the sampel or a shifted on. But always
 %23. Thus darkcount = sum(dc)
 
 %plot and save
-reso_line_ISM = [[42 92]; [98 98]];
+reso_line_ISM = [[107 107]; [28 78]];
 img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, 'ISM', 1, IM_R, ISM_binning, reso_line_ISM, 1, 1);
 
 %% manuel lucy Richerson decon
@@ -244,16 +245,16 @@ end
 %% Fourier-reweighted ISM
 
 if frw
-    reso_line_frw = [[42 92]; [97 97]];
     %calculate Fourier-reweighted ISM image
-    W_ISM_img1 = f_reweighting( max(ISM_img(2:end-1,3:end-1) - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R);
+    W_ISM_img1 = f_reweighting( max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R);
     %plot
-    img_plot(W_ISM_img1, hot, ISM_docn_name, 'Fourier-reweighted ISM', 1, IM_R, ISM_binning, reso_line_frw, 1, 1);
+    reso_line_frw = [[107 107]; [28 78]];
+    img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier-reweighted ISM', 1, IM_R, ISM_binning, reso_line_frw, 1, 1);
 end
 
 %% Lifetime Image
 
-%TODO see if thismakes sense
+%TODO see if this makes sense
 %     test_img = ISM_lt_amp_img(:,:,1:3);
 %     test_img = ISM_lt_amp_img./repmat(max(ISM_lt_amp_img,[],[1 2]), [size(ISM_lt_amp_img,[1 2]) 1]);
 %     test_img = test_img(:,:,1:3);
