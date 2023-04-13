@@ -1,11 +1,11 @@
 function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, pix_bin, reso_line, reso, save)
 %IMG_PLOT plot 2D image with color bar and scale and save to dir
 
-roi = [0 0; 0 0];
+% roi = [40 1; 130 91];
 % img = img( roi(1,2):roi(2,2), roi(1,1) : roi(2,1));
 
 %cut artefacts at edges
-img = img(3:end-3,3:end-3);
+% img = img(3:end-3,3:end-3);
 
 h = figure;
 ax = axes(h);
@@ -95,7 +95,6 @@ if reso
     
     lin = sub2ind(size(img), yb, xb);
     bead_sum = img(lin);
-    bead_sum = bead_sum;%/max(bead_sum);
 
     fitt = fit(r_bead.', bead_sum.', 'gauss1');
 
@@ -119,8 +118,8 @@ if reso
     fit_stg = sprintf(' %g \x00B1 %g nm', fwhm*1000, fwhm_err*1000);
 
     r = figure;
-    r_ax = axes(r);
-    plot(fitt, r_bead, bead_sum,'bx')
+    r_ax = axes('Parent', r);
+    plot(fitt, r_bead, bead_sum, 'bx')
     set(findall(r,'-property','FontSize'),'FontSize',17)
     set(findall(r,'-property', 'MarkerSize'), 'MarkerSize', 12)
     set(findall(r,'-property','LineWidth'),'LineWidth',1.5)
@@ -153,7 +152,7 @@ if save
     metadata.setPixelsPhysicalSizeX(pixelSize, 0);
     metadata.setPixelsPhysicalSizeY(pixelSize, 0);
 
-%     bfsave(img, spath,'metadata', metadata);
+    bfsave(img, spath,'metadata', metadata);
 end
 
 end

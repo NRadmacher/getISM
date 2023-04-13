@@ -10,12 +10,17 @@ clc
 lifetime    = 0;
 s_lifetime  = 0;
 d_lifetime  = 0;
+d_color     = 1;
 t_lifetime  = 0;
 q_lifetime  = 0;
 deconv      = 0;
-frw         = 1;
+frw         = 0;
 sofi        = 0;
 add_plt     = 0;
+save_image  = 1;
+plot_reso   = 0;
+
+max_data = 0;
 %% Loadind data
 %rgb values for color map black,blue,cyan,green,yellow,orange?,red,magenta
 sp1     = 1:255/7:256;
@@ -46,13 +51,15 @@ c_blue      = interp1(bl, b2, lambda);
 c_yellow    = interp1(bl, y2, lambda);
 c_map       = cmap_isoluminant75;
 
-fname   = 'D:\PHD\Data\2022\220309\tetra_beads_015.ptu';
-dcname  = 'D:\PHD\Data\2022\220106\cd_001.ptu';
-irfname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220816\irf_ex470nm_005.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230413_CMs_fixed\CM_fixed_20kPa_ACTN2_citrine_Paxilin_SPAD_019.ptu';
+dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\dc_spad_001.ptu';
+irfname = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
 
 %Image title and name from file name
 tmp_name        = strsplit(fname, '\');
-date            = tmp_name{end-1};
+folder_name     = tmp_name{end-1};
+date            = strsplit(folder_name, '_');
+date            = date{1};
 img_name        = tmp_name{end};
 img_name        = strsplit(img_name, '.');
 img_name        = img_name{end-1};
@@ -76,13 +83,13 @@ im_posx         = im_posx * head.ImgHdr_PixX;
 im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 
 %remove time delay due to unsyncronised Multi Harps
-im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
+% im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
 
 %Dark count in count per second
 [dc, bin_dc] = get_DC(dcname,0);
 
 %get IRF to set tail for tailfit
-% [fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 1);
+[fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 0);
 %% Parameters and magic numbers(please fix) AND FIX NAMEN FÜR TCSPC
 
 %number of pixels in recorded image
@@ -94,7 +101,7 @@ IM_R = head.ImgHdr_PixResol;
 
 %ISM Binning UGO[1.02] PQ[1.04] UGO220302[1.01] 20nm[1.0075] g4mix
 %[1.01/1.0075]pmt
-ISM_binning = 1.0;
+ISM_binning = 1.01;
 
 %temporal resolution of TCSPC in seconds
 time_R = mean(head.MeasDesc_Resolution);
@@ -103,6 +110,12 @@ time_R = mean(head.MeasDesc_Resolution);
 if(sum(head.HWInpChan_Enabled) > 23)
     n_pixl = 32;
 else
+    n_pixl = 23;
+    %need fix for switch box
+    im_chan = im_chan - 9;
+end
+
+if max_data
     n_pixl = 23;
 end
 
@@ -133,13 +146,6 @@ max_lt = 8;
 pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
 pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
-%put this in hex plot
-% pixel_img   = histcounts(im_chan,0:n_pixl);
-% fiber_img   = zeros(37,1);
-% fiber_img(fiber_code()+1)   = pixel_img;
-% hex_plot(fiber_img, hot)
-% 
-% pmt_plot(im_chan, n_pixl, hot)
 %% Multiple tau scale
 
 m_tau = 0;
@@ -189,14 +195,18 @@ else
     sv_file_name = 'MPMT_shift_vectors.m';
 end
 
+if max_data
+    sv_file_name = 'max_shift_vectors.m';
+end
+
 sv_file = matfile(sv_file_name);
 sv = sv_file.shift_vector;
 shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
 
 %apply ISM reassigment vektor
-ISM_posx    = im_posx + shift_x./(IM_R/0.05);
-ISM_posy    = im_posy + shift_y./(IM_R/0.05);
+ISM_posx    = im_posx + shift_x;%./(IM_R/0.05);
+ISM_posy    = im_posy + shift_y;%./(IM_R/0.05);
 
 clear shift_y shift_x;
 
@@ -204,13 +214,40 @@ clear shift_y shift_x;
 %generate confocal image
 [sum_img, sum_lin, sum_size] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
-clear im_posy im_posx;
-%remoce dark count
-%sum_img = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
+% ind_x = im_posx >= 726.5 & im_posx < 727.5;
+% ind_y = im_posy == 154;
+% 
+% ind = ind_y&ind_x;
+% 
+% det_pixel = im_chan(ind);
+% 
+% [pix_count,~] = histcounts(det_pixel, n_pixl);
+% hex_plot(pix_count, hot);
+% 
+% det_x = -1.*[-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2];
+% A = ones(1,5).*sqrt(3);
+% B = zeros(1,5);
+% det_y = 1.*[A,A(1:end-1)./2,B,-A(1:end-1)./2,-A];
+% 
+% d_gauss = @(a, b, s1, s2, x, y) ...
+%     a * exp(-(x.^2+y.^2)/(2*s1^2) + b * exp(-(x.^2+y.^2)/(2*s2^2)));
+% d_gauss_fitt = fit([det_x.',det_y.'], pix_count.', d_gauss, ...
+%     'StartPoint', [10, 10, 0.7, 1.7], ...
+%     'Lower', [1, 1, 0.1, 0.1]);
+% [xx, yy] = meshgrid(-2:0.1:2,-2:0.1:2);
+% figure
+% hold on
+% test = d_gauss(d_gauss_fitt.a,d_gauss_fitt.b,d_gauss_fitt.s1,d_gauss_fitt.s2,xx,yy);
+% scatter3(det_x,det_y, pix_count)
+% surf(xx,yy,test)
+% axis square
+% clear im_posy im_posx;
 
 %plot and save
-reso_line_conf = [[106 106]; [28 78]];
-img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, colf_name, 'confocal', 1, IM_R, 1, reso_line_conf, 1, 1);
+reso_line_conf = [[110 110]; [29 79]];
+sum_img_dc = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
+img_plot( sum_img_dc, hot, colf_name, ...
+    'confocal', 1, IM_R, 1, reso_line_conf, plot_reso, save_image);
 
 %% ISM Image
 %crate ISM image
@@ -221,8 +258,9 @@ img_plot(max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, colf_name, 'con
 %23. Thus darkcount = sum(dc)
 
 %plot and save
-reso_line_ISM = [[107 107]; [28 78]];
-img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, 'ISM', 1, IM_R, ISM_binning, reso_line_ISM, 1, 1);
+reso_line_ISM = [[111 111]; [29 79]];
+img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, ...
+    'ISM', 1, IM_R, ISM_binning, reso_line_ISM, plot_reso, save_image);
 
 %% manuel lucy Richerson decon
 if(deconv)
@@ -246,10 +284,12 @@ end
 
 if frw
     %calculate Fourier-reweighted ISM image
-    W_ISM_img1 = f_reweighting( max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0),IM_R);
-    %plot
-    reso_line_frw = [[107 107]; [28 78]];
-    img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier-reweighted ISM', 1, IM_R, ISM_binning, reso_line_frw, 1, 1);
+    W_ISM_img1 = f_reweighting( max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), IM_R);
+
+    %plot and save fr ISM
+    reso_line_frw = [[111 111]; [29 79]];
+    img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier-reweighted ISM', ...
+        1, IM_R, ISM_binning, reso_line_frw, plot_reso, save_image);
 end
 
 %% Lifetime Image
@@ -323,7 +363,7 @@ if(d_lifetime)
 end
 
 %% Double lifetime double color
-if(q_lifetime)
+if(q_lifetime || d_color)
     %start bin of second color
     red_start = 5000;
 
@@ -345,91 +385,73 @@ if(q_lifetime)
     red_ISM_posy   = ISM_posy(red);
 
     %crate blue ISM image
-    [blue_ISM_img, blue_ISM_lin, ~]  = img_ps(blue_ISM_posx, blue_ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
+    [blue_ISM_img, blue_ISM_lin, ~]  = img_ps(blue_ISM_posx, blue_ISM_posy, ...
+        s_pixl_x, s_pixl_y, ISM_binning);
     
-    %plot and save
-    reso_line_ISM = [[107 107]; [30 65]];
-    img_plot(blue_ISM_img, hot, ISM_name, 'blue ISM', 4, IM_R, ISM_binning, reso_line_ISM, 0, 0);
+    %plot and save blue
+    img_plot(blue_ISM_img, hot, ISM_name, 'blue ISM', 4, IM_R, ISM_binning, ...
+        reso_line_ISM, 0, save_image);
 
     %crate blue ISM image
-    [red_ISM_img, red_ISM_lin, ~]  = img_ps(red_ISM_posx, red_ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
+    [red_ISM_img, red_ISM_lin, ~]  = img_ps(red_ISM_posx, red_ISM_posy, ...
+        s_pixl_x, s_pixl_y, ISM_binning);
     
-    %plot and save
-    reso_line_ISM = [[107 107]; [30 65]];
-    img_plot(red_ISM_img, hot, ISM_name, 'red ISM', 4, IM_R, ISM_binning, reso_line_ISM, 0, 0);
+    %plot and save red
+    img_plot(red_ISM_img, hot, ISM_name, 'red ISM', 4, IM_R, ISM_binning, ...
+        reso_line_ISM, 0, 0);
 
-    %lifetiem analysis
-    [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(670, 5000, time_R, bin_factor);
-    blue_pattern_tau = [1.5 3.6 inf];
-    blue_pattern = pfun_monoexpBG(blue_pattern_tau,0,tail_t-tail_start_time,tail_bin_l);
+    if q_lifetime
+        %lifetiem analysis
+        [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(670, 5000, time_R, bin_factor);
 
-    % Struckture and Fluorophore name
-    names = {'TOMM20', 'GFAP'; 'Cy2', 'OG 488'};
-
-    lt_short_name   = compose('%s blue lt short %0.1f ns', ISM_name, blue_pattern_tau(1)); %1.37
-    lt_long_name    = compose('%s blue lt long %0.1f ns', ISM_name, blue_pattern_tau(2)); % 3.0
-
-    shot_title = append(names{1,1}, ': ', names{2,1});
-    long_title = append(names{1,2}, ': ', names{2,2});
+        blue_pattern_tau = [1.5 3.6 inf];
+        blue_pattern = pfun_monoexpBG(blue_pattern_tau,0,tail_t-tail_start_time,tail_bin_l);
     
-    %unmix the two patterns
-    [lt_amp_img] = get_bi_lifetime(blue_ISM_img, blue_ISM_lin, im_tcspc = blue_tcspc, ...
-        tail_t = tail_t, tail_bin = tail_bin_l, tail_start_time = tail_start_time, ...
-        tcspc_t = tcspc_t, pattern = blue_pattern, pattern_tau = blue_pattern_tau, ...
-        name = names, fname = ISM_name);
+        % Struckture and Fluorophore name
+        names = {'TOMM20', 'GFAP'; 'Cy2', 'OG 488'};
     
-    %plot individual strucktures
-    img_plot(medfilt2(lt_amp_img(:,:,1)), c_blue, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    img_plot(medfilt2(lt_amp_img(:,:,2)), c_green, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-
-% %     get pixel lifetimes via MLE pattern matching
-%     lt_img = get_single_lifetime(blue_ISM_img, blue_ISM_lin, ...
-%         im_tcspc = blue_tcspc, tail_t = tail_t, tail_bin_l = tail_bin_l,...
-%         tail_start_time = tail_start_time, tcspc_t = tcspc_t,...
-%         max_lt = max_lt, lt_cut_off = lt_cut_off);
-% 
-%     %plot pxel wise lt values scaled with image intensity
-%     lt_img_plot(lt_img, blue_ISM_img, c_map, lt_cut_off, [0.1 4], 'Lifetime', LT_name, 4, IM_R, 1) 
-
-
-    %lifetiem analysis red
-    [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(5700, 9990, time_R, bin_factor);
-    red_pattern_tau = [2.4 4.2 inf];
-    red_pattern = pfun_monoexpBG(red_pattern_tau,0,tail_t-tail_start_time,tail_bin_l);
-
-    % Struckture and Fluorophore name
-    names = {'GM130', 'PSD95'; 'AF 647', 'AS 635P'};
-
-    lt_short_name   = compose('%s red lt short %0.1f ns', ISM_name, red_pattern_tau(1)); %1.37
-    lt_long_name    = compose('%s red lt long %0.1f ns', ISM_name, red_pattern_tau(2)); % 3.0
-
-    shot_title = append(names{1,1}, ': ', names{2,1});
-    long_title = append(names{1,2}, ': ', names{2,2});
+        lt_short_name   = compose('%s blue lt short %0.1f ns', ISM_name, blue_pattern_tau(1)); %1.37
+        lt_long_name    = compose('%s blue lt long %0.1f ns', ISM_name, blue_pattern_tau(2)); % 3.0
     
-    %unmix the two patterns
-    [lt_amp_img] = get_bi_lifetime(red_ISM_img, red_ISM_lin, im_tcspc = red_tcspc, ...
-        tail_t = tail_t, tail_bin = tail_bin_l, tail_start_time = tail_start_time, ...
-        tcspc_t = tcspc_t, pattern = red_pattern, pattern_tau = red_pattern_tau, ...
-        name = names, fname = ISM_name);
+        shot_title = append(names{1,1}, ': ', names{2,1});
+        long_title = append(names{1,2}, ': ', names{2,2});
+        
+        %unmix the two patterns
+        [lt_amp_img] = get_bi_lifetime(blue_ISM_img, blue_ISM_lin, im_tcspc = blue_tcspc, ...
+            tail_t = tail_t, tail_bin = tail_bin_l, tail_start_time = tail_start_time, ...
+            tcspc_t = tcspc_t, pattern = blue_pattern, pattern_tau = blue_pattern_tau, ...
+            name = names, fname = ISM_name);
+        
+        %plot individual strucktures
+        img_plot(medfilt2(lt_amp_img(:,:,1)), c_blue, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+        img_plot(medfilt2(lt_amp_img(:,:,2)), c_green, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
     
-    %plot individual strucktures
-    img_plot(medfilt2(lt_amp_img(:,:,1)), c_yellow, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    img_plot(medfilt2(lt_amp_img(:,:,2)), c_red, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+        %lifetiem analysis red
+        [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(5700, 9990, time_R, bin_factor);
 
-%     manuel_decon(medfilt2(lt_amp_img(:,:,2)), eid, ...
-%                 c_map = hot, s_name = lt_long_name{1}, ...
-%                 t_name = long_title, ...
-%                 sb_lenght = 1, IM_R = IM_R, pix_bin = ISM_binning, ...
-%                 reso = 1, save = 1);
-% 
-% %     get pixel lifetimes via MLE pattern matching
-%     lt_img = get_single_lifetime(red_ISM_img, red_ISM_lin, ...
-%             im_tcspc = red_tcspc, tail_t = tail_t, tail_bin_l = tail_bin_l,...
-%             tail_start_time = tail_start_time, tcspc_t = tcspc_t,...
-%             max_lt = max_lt, lt_cut_off = lt_cut_off, fname = LT_name);
-% 
-% %     plot pxel wise lt values scaled with image intensity
-%     lt_img_plot(lt_img, red_ISM_img, c_map, lt_cut_off, [0.2 4], 'Lifetime', LT_name, 4, IM_R, 1) 
+        red_pattern_tau = [2.4 4.2 inf];
+        red_pattern = pfun_monoexpBG(red_pattern_tau,0,tail_t-tail_start_time,tail_bin_l);
+    
+        % Struckture and Fluorophore name
+        names = {'GM130', 'PSD95'; 'AF 647', 'AS 635P'};
+    
+        lt_short_name   = compose('%s red lt short %0.1f ns', ISM_name, red_pattern_tau(1)); %1.37
+        lt_long_name    = compose('%s red lt long %0.1f ns', ISM_name, red_pattern_tau(2)); % 3.0
+    
+        shot_title = append(names{1,1}, ': ', names{2,1});
+        long_title = append(names{1,2}, ': ', names{2,2});
+        
+        %unmix the two patterns
+        [lt_amp_img] = get_bi_lifetime(red_ISM_img, red_ISM_lin, im_tcspc = red_tcspc, ...
+            tail_t = tail_t, tail_bin = tail_bin_l, tail_start_time = tail_start_time, ...
+            tcspc_t = tcspc_t, pattern = red_pattern, pattern_tau = red_pattern_tau, ...
+            name = names, fname = ISM_name);
+        
+        %plot individual strucktures
+        img_plot(medfilt2(lt_amp_img(:,:,1)), c_yellow, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+        img_plot(medfilt2(lt_amp_img(:,:,2)), c_red, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+
+    end
 end
 
 %% SOFI

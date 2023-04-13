@@ -9,7 +9,7 @@ if(sum(head.HWInpChan_Enabled,"all") > 23)
     title_name = 'MPMT Darkcount';
 else
     n_pixl = 23;
-    title_name = 'SPAD Darkcount';
+    title_name = 'SPAD-Array Darkcount';
 end
 
 [dc,~] = histcounts(im_chan, n_pixl);
@@ -29,6 +29,15 @@ end
 bin_dc = bin_dc./(head.ImgHdr_PixelTime * head.ImgHdr_PixNum);
 
 if(plt)
+
+    tmp_name = strsplit(fname, '\');
+    date = tmp_name{end-1};
+    img_name = tmp_name{end};
+    img_name = strsplit(img_name, '.');
+    img_name = img_name{end-1};
+    img_name = append(date,' ',img_name);
+    img_name = strrep(img_name,'_',' ');
+
     f = figure;
     ax = axes(f);
     bar(0:n_pixl-1,dc,'FaceColor',[0.00,1.00,0.00],'EdgeColor', [0.39,0.83,0.07],'FaceAlpha',1);
@@ -37,8 +46,13 @@ if(plt)
     title(title_name)
     xlabel(sprintf('Pixel index'));
     ylabel(sprintf('counts / s'));
-    set(ax,'YScale', 'log')
+    set(ax,'YScale', 'log', 'FontSize',13,'FontWeight','bold', 'LineWidth',1)
+    grid(ax,"on")
+    ylim(ax,[10^(floor(log10(min(dc(:))))) 10^(ceil(log10(max(dc(:)))))])
     ylim(ax,[1 10^(ceil(log10(max(dc(:)))))])
+
+    file_name = append(img_name,'_bar.png');
+    exportgraphics(ax, file_name,'Resolution',600)
 
 %     get percentile
 
@@ -49,9 +63,13 @@ if(plt)
     plot(ax, 1:100, P,'LineWidth',2);
     xlabel(sprintf('Percentage of Pixels'));
     ylabel(sprintf('counts / s'));
+    title(title_name)
     grid(ax,"on")
-    set(ax,'YScale', 'log')
+    set(ax,'YScale', 'log', 'FontSize',13,'FontWeight','bold', 'LineWidth',1)
 
+    file_name = append(img_name,'_per.png');
+    exportgraphics(ax, file_name,'Resolution',600)
+    
     if n_pixl == 32
         pixel_img               = dc.';
         pixel_img               = (pixel_img);

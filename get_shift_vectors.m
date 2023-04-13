@@ -1,13 +1,16 @@
 function get_shift_vectors()
 
-% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220309\tetra_beads_015.ptu';
+%terta 100 old
+fname = 'D:\PHD\Data\2022\220309_terta_bead\tetra_beads_015.ptu';
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220302\tetra_beads_004.ptu';
+dcname = 'D:\PHD\Data\2022\220106\cd_001.ptu';
+
 %qdot 20nm
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220420\q_dot_003.ptu';
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220424\q_dot_008.ptu';
+% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220420\q_dot_003.ptu';
+% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220424\q_dot_008.ptu';
 
 %good sv unit 08.07.2022
-fname = 'D:\PHD\Data\2022\220309\tetra_beads_015.ptu';
+% fname = 'D:\PHD\Data\2022\220309\tetra_beads_015.ptu';
 
 %good shift vektors with pinhole 220302 004
 % fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220314\homer_bassoon_006.ptu';
@@ -18,7 +21,7 @@ fname = 'D:\PHD\Data\2022\220309\tetra_beads_015.ptu';
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210310\Tubulin_Dylight488_002.ptu';
 
 %sv for neurons sice 27.09.22 SPAD
-fname = 'D:\PHD\Data\2022\220927\neurons_g1_cy2_syt1_one_005.ptu';
+% fname = 'D:\PHD\Data\2022\220927\neurons_g1_cy2_syt1_one_005.ptu';
 
 %sc neurosn 01.01.23 PMT ?
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230112\neurons_g1_cy2_syt1_two_004.ptu';
@@ -30,10 +33,12 @@ fname = 'D:\PHD\Data\2022\220927\neurons_g1_cy2_syt1_one_005.ptu';
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\221117\neurons_g1_syt1_cy2_one_003.ptu';
 
 %mpmt setup adjusted 01.02.23
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230202\tetra_pmt_026.ptu';
+% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230202\tetra_pmt_026.ptu';
+%spad setup adjustmed 01.02.23
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\tetra_spad_017.ptu';
 
-% dcname = 'D:\PHD\Data\2022\220106\cd_001.ptu'; %SPAD
-dcname = 'D:\PHD\Data\2022\221117\dc_002.ptu'; %PMT
+dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\dc_spad_001.ptu'; %SPAD
+% dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230203_g4_dc\dc_m15_pmt_001.ptu'; %PMT
 
 tmp_name        = strsplit(fname, '\');
 date            = tmp_name{end-1};
@@ -43,6 +48,15 @@ img_name        = img_name{end-1};
 img_name        = append(date,' ',img_name);
 
 [im_chan,~,im_posy,im_posx,~, head] = read_ISM(fname);
+
+%number of pixels in recorded image
+s_pixl_x = head.ImgHdr_PixX;
+s_pixl_y = head.ImgHdr_PixY;
+
+ind = im_posy<=s_pixl_y;
+im_chan = im_chan(ind);
+im_posx = im_posx(ind);
+im_posy = im_posy(ind);
 
 %Dark count in count per second
 [dc, ~] = get_DC(dcname,0);
@@ -56,20 +70,11 @@ else
     n_pixl = 23;
     title_name = 'SPAD shift vectors';
     save_name = 'SPAD_shift_vectors.m';
+    im_chan = im_chan-9;
 end
-
-%number of pixels in recorded image
-s_pixl_x = head.ImgHdr_PixX;
-s_pixl_y = head.ImgHdr_PixY;
 
 %ISM scale factor 
 alpha = (1 + 525/470);
-
-ind = im_posy<=s_pixl_y;
-im_chan = im_chan(ind);
-im_posx = im_posx(ind);
-im_posy = im_posy(ind);
-
 
 %% calculate shift vectors with image correlation and phase correlation
 im_pix = im_chan;
@@ -87,8 +92,8 @@ for pixl=1:n_pixl
        img = max(img - dc(pixl) * head.ImgHdr_PixelTime, 0);
        
        J = wiener2(img,[20 20]);
-       imgs{pixl} = J;
-%        imgs{pixl} = img;
+%        imgs{pixl} = J;
+       imgs{pixl} = img;
 end
 disp("conversion to imges done")
 
@@ -159,7 +164,7 @@ ylabel('y shift [pixel]')
 xlabel('x shift [pixel]')
 grid on
 box on
-title(append(title_name,' pc'))
+title(append(title_name,' ic'))
 name = append(img_name, '_sv');
 file_name = append(name,'.png');
 exportgraphics(ax, file_name,'Resolution',600)

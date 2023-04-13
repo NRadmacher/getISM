@@ -11,8 +11,8 @@ xl = 1:255/7:256;%like linespace but stepsize
 yl = [[0 0 0]; [0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]; [1 0 1]];
 lambda   = 1:256;
 spectrum = interp1(xl, yl, lambda);
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230113\neurons_g4_mix_two_002.ptu';
-dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210909\IRF_DC_001.ptu';
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230317_CMs_fixed\CM_fixed_20kPa_ACTN2_citrine_Paxilin_SPAD_004.ptu';
+dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\dc_spad_001.ptu';
 
 tmp_name = strsplit(fname, '\');
 date = tmp_name{end-1};
