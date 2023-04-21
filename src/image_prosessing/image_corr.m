@@ -42,8 +42,11 @@ if ~isempty(shift_y)&& ~isempty(shift_x)
 
     maximum = max(max(cf));
     [shift_y,shift_x]=find(cf==maximum);
-    dx = fx(shift_y,shift_x);
-    dy = fy(shift_y,shift_x);
+    if numel(shift_x)> 1
+        disp("stop")
+    end
+    dx = fx(shift_y(1),shift_x(1));
+    dy = fy(shift_y(1),shift_x(1));
 %     dx = shift_x - size(img_a,2);
 %     dy = shift_y - size(img_a,1);
 else

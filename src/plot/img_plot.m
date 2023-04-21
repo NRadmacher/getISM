@@ -1,8 +1,10 @@
 function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, pix_bin, reso_line, reso, save)
 %IMG_PLOT plot 2D image with color bar and scale and save to dir
 
-% roi = [40 1; 130 91];
-% img = img( roi(1,2):roi(2,2), roi(1,1) : roi(2,1));
+roi = [1 1; size(img,1) size(img,2)];
+% ymin xin ;ymax xmax
+% roi = [114 78; 195 158];
+img = img( roi(1,1):roi(2,1), roi(1,2) : roi(2,2));
 
 %cut artefacts at edges
 % img = img(3:end-3,3:end-3);
@@ -47,13 +49,13 @@ if reso
     yb2 = reso_line(2,2);
     
     %horizontal limits for intensity line
-    xb1 = xb1 - roi(1,1);
-    xb2 = xb2 - roi(1,1);
+    xb1 = xb1 - roi(1,2)+1;
+    xb2 = xb2 - roi(1,2)+1;
     dxb = xb2 - xb1;
     
     %vertical limits of intensity line
-    yb1 = yb1 - roi(1,2);
-    yb2 = yb2 - roi(1,2);
+    yb1 = yb1 - roi(1,1)+1;
+    yb2 = yb2 - roi(1,1)+1;
     dyb = yb2 - yb1;
     
 %     Set long and short "differnec" for sampeling along intensity line
@@ -98,14 +100,14 @@ if reso
 
     fitt = fit(r_bead.', bead_sum.', 'gauss1');
 
-    sig = fitt.c1/2;
+    sig = fitt.c1/sqrt(2);
     ci = confint(fitt,0.95)/2;
     sig_err = abs(sig - max(ci(:,3)));
 
 %     fwhm = 2*sqrt(2 * log(2)) * sig;
 %     fwhm_err = 2*sqrt(2 * log(2)) * sig_err;
     
-    fwhm = 2 * sig;
+    two_sig = 2 * sig;
     fwhm_err = 2 * sig_err;
 
     %get significan decimal of error
@@ -113,9 +115,9 @@ if reso
     sig_deci = abs(round(sig_deci)) + 1;
 
     fwhm_err = round(fwhm_err, sig_deci);
-    fwhm = round(fwhm, sig_deci);
+    two_sig = round(two_sig, sig_deci);
 
-    fit_stg = sprintf(' %g \x00B1 %g nm', fwhm*1000, fwhm_err*1000);
+    fit_stg = sprintf(' %g \x00B1 %g nm', two_sig*1000, fwhm_err*1000);
 
     r = figure;
     r_ax = axes('Parent', r);
@@ -140,7 +142,7 @@ if save
         exportgraphics(r_ax, file_name,'Resolution',600)
     end
 
-    spath = append(pwd,'\',name, '.tiff');
+    spath = append(pwd,'\',name, '.tif');
 
     if exist(spath, 'file')==2
         delete(spath);

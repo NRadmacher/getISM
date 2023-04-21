@@ -20,8 +20,8 @@ function W_ISM_img = f_reweighting(data, IM_R)
     Feid = Feid./max(Feid,[],'all');
     
     Fprod = Fpsf.*Feid;
-    %regulation parameter to prevent divergence
-    eps = 0.013 * max(Fprod,[],'all');
+    %regulation parameter to prevent divergence 0.013
+    eps = 0.05 * max(Fprod,[],'all');
     %Fourier transform ISM image
     Fimg = fftshift(fft2(data));
     fa = abs(Fimg); % modulus

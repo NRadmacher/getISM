@@ -104,9 +104,9 @@ s_pixl_y    = head.ImgHdr_PixY;
 %scan resolution step per pixel in µm
 IM_R = head.ImgHdr_PixResol;
 
-%ISM Binning UGO[1.02] PQ[1.04] UGO220302[1.01] 20nm[1.0075] g4mix
+%ISM Binning UGO[1.02, 1.018] PQ[1.04] UGO220302[1.01] 20nm[1.0075] g4mix
 %[1.01/1.0075]pmt
-ISM_binning = 1.01;
+ISM_binning = options.ISM_binning;
 
 %temporal resolution of TCSPC in seconds
 time_R = mean(head.MeasDesc_Resolution);
@@ -114,10 +114,18 @@ time_R = mean(head.MeasDesc_Resolution);
 %number of pixels of the detector
 if(sum(head.HWInpChan_Enabled) > 23)
     n_pixl = 32;
+    pix_time = head.ImgHdr_TimePerPixel/1e3;
 else
     n_pixl = 23;
     %need fix for switch box
-    im_chan = im_chan - 9;
+%     im_chan = im_chan - 9;
+    pix_time = head.ImgHdr_TimePerPixel/1e3;
+end
+
+if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
+    n_pixl = 23;
+    %timer per pixel in total in seconds
+    pix_time = head.ImgHdr_MaxFrames * head.ImgHdr_TimePerPixel/1e3;
 end
 
 max_bin = head.max_bin;
@@ -149,20 +157,26 @@ fprintf('ISM reasigment\n');
 %shift vectors from file negativ sign is already included
 if n_pixl == 23
     sv_file_name = 'SPAD_shift_vectors.m';
+    if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
+        sv_file_name = 'SPAD_shift_vectors_mite.m';
+    end
 else
     sv_file_name = 'MPMT_shift_vectors.m';
 end
 
 sv_file = matfile(sv_file_name);
-sv = sv_file.shift_vector;
+sv = (sv_file.shift_vector);
 shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
 
 %apply ISM reassigment vektor
-ISM_posx    = im_posx + shift_x;%./(IM_R/0.05);
-ISM_posy    = im_posy + shift_y;%./(IM_R/0.05);
+ISM_posx    = im_posx + shift_x./(IM_R/0.05);
+ISM_posy    = im_posy + shift_y./(IM_R/0.05);
 
 clear shift_y shift_x;
+
+[pix_count,~] = histcounts(im_chan, n_pixl);
+hex_plot(pix_count, hot);
 
 %% Confocal Image
 %generate confocal image
@@ -198,8 +212,8 @@ clear shift_y shift_x;
 % clear im_posy im_posx;
 
 %plot and save
-reso_line_conf = [[110 110]; [29 79]];
-sum_img_dc = max(sum_img - sum(dc) * head.ImgHdr_PixelTime, 0);
+reso_line_conf = [[105 105]; [136 176]];
+sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
 img_plot( sum_img_dc, hot, colf_name, ...
     'confocal', 1, IM_R, 1, reso_line_conf, options.plot_reso, options.save_image);
 
@@ -212,8 +226,8 @@ img_plot( sum_img_dc, hot, colf_name, ...
 %23. Thus darkcount = sum(dc)
 
 %plot and save
-reso_line_ISM = [[111 111]; [29 79]];
-img_plot(max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), hot, ISM_name, ...
+reso_line_ISM =  [[108 108]; [136 176]];
+img_plot(max(ISM_img - sum(dc) * 0, 0), hot, ISM_name, ...
     'ISM', 1, IM_R, ISM_binning, reso_line_ISM, options.plot_reso, ...
     options.save_image);
 
@@ -224,7 +238,7 @@ if options.frw
     W_ISM_img1 = f_reweighting( max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), IM_R);
 
     %plot and save fr ISM
-    reso_line_frw = [[111 111]; [29 79]];
+    reso_line_frw = [[108 108]; [136 176]];
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier-reweighted ISM', ...
         1, IM_R, ISM_binning, reso_line_frw, options.plot_reso, ...
         options.save_image);

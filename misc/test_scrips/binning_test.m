@@ -11,8 +11,8 @@ xl = 1:255/7:256;%like linespace but stepsize
 yl = [[0 0 0]; [0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]; [1 0 1]];
 lambda   = 1:256;
 spectrum = interp1(xl, yl, lambda);
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230317_CMs_fixed\CM_fixed_20kPa_ACTN2_citrine_Paxilin_SPAD_004.ptu';
-dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\dc_spad_001.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\tetra_spad_017.ptu';
+dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\dc_spad_001.ptu';
 
 tmp_name = strsplit(fname, '\');
 date = tmp_name{end-1};
@@ -32,7 +32,7 @@ im_pix = im_chan;
 im_time = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 
 %remove time delay due to unsyncronised Multi Harps
-im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 90);
+% im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 90);
 
 %Dark count in count per second
 [dc, bin_dc] = get_DC(dcname,0);
@@ -48,8 +48,10 @@ s_size      = [s_pixl_x s_pixl_y];
 %% ISM reasigment
 disp("ISM reasigment")
 
+im_pix = im_pix - 9;
+
 %shift vectors from file negativ sign is already included
-sv_file = matfile('shift_vector.m');
+sv_file = matfile('SPAD_shift_vectors_mite.m');
 sv = sv_file.shift_vector;
 shift_x     = sv(1, im_pix+1).';
 shift_y     = sv(2, im_pix+1).';

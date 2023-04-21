@@ -45,7 +45,7 @@ txt = string(numb);
 figure
 colormap(map)
 patch(X,Y,C)
-text(det_x(1,:), det_y(1,:), txt)
+text(det_x(1,:), det_y(1,:), txt, 'Color','g')
 set(gca,'DataAspectRatio', [1,1,1], ...
     'PlotBoxAspectRatio',[1 1 1])
 colorbar

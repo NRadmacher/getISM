@@ -1,10 +1,10 @@
 function [eid, psf] = get_psf(rhofield, pix)
 %% PSF calculation
-NA = 1.35;
-lamex = 0.47; % excitation wavelength in mum
-lamem = 0.525; % emission wavelength in mum
-fd = 3e3; % objective focal length in mum
-tubelens = 250e3; % tube lens focal length in mum
+NA = 1.49;
+lamex = 0.64; % excitation wavelength in mum
+lamem = 0.70; % emission wavelength in mum
+fd = 1.8e3; % objective focal length in mum
+tubelens = 180e3; % tube lens focal length in mum
 mag = tubelens/fd; % magnification in pinhole plane
 av = 50/2; % pinhole radius in mum
 zpin = 0; % pinhole position raltive to focal plane
