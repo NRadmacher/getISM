@@ -1,7 +1,5 @@
 function W_ISM_img = f_reweighting(data, IM_R)
     
-    %double the sampling points to get reweighting at twice the k-vectors
-    IM_R = IM_R/2;
     %iamge size 
     [nx,ny] = size(data);
     %maximal radial exten of image in µm
@@ -21,7 +19,7 @@ function W_ISM_img = f_reweighting(data, IM_R)
     
     Fprod = Fpsf.*Feid;
     %regulation parameter to prevent divergence 0.013
-    eps = 0.05 * max(Fprod,[],'all');
+    eps = 0.01 * max(Fprod,[],'all');
     %Fourier transform ISM image
     Fimg = fftshift(fft2(data));
     fa = abs(Fimg); % modulus

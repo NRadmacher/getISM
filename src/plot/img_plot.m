@@ -1,7 +1,9 @@
-function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, pix_bin, reso_line, reso, save)
+function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, pix_bin, roi, reso_line, reso, save)
 %IMG_PLOT plot 2D image with color bar and scale and save to dir
 
-roi = [1 1; size(img,1) size(img,2)];
+if roi == 0
+    roi = [1 1; size(img,1) size(img,2)];
+end
 % ymin xin ;ymax xmax
 % roi = [114 78; 195 158];
 img = img( roi(1,1):roi(2,1), roi(1,2) : roi(2,2));
@@ -49,13 +51,13 @@ if reso
     yb2 = reso_line(2,2);
     
     %horizontal limits for intensity line
-    xb1 = xb1 - roi(1,2)+1;
-    xb2 = xb2 - roi(1,2)+1;
+    xb1 = xb1 - +1;
+    xb2 = xb2 - +1;
     dxb = xb2 - xb1;
     
     %vertical limits of intensity line
-    yb1 = yb1 - roi(1,1)+1;
-    yb2 = yb2 - roi(1,1)+1;
+    yb1 = yb1 - +1;
+    yb2 = yb2 - +1;
     dyb = yb2 - yb1;
     
 %     Set long and short "differnec" for sampeling along intensity line
@@ -79,19 +81,19 @@ if reso
         if(dyb == 0)
             xb     = xb1:1:xb2;
             yb     = zeros(1,dxb + 1) + yb1;
-            lb      = IM_R;
+            lb      = IM_R/pix_bin;
             r_bead  = (0:dxb) * lb;
         else
             yb     = yb1:1:yb2;
             xb     = zeros(1,dyb + 1) + xb1;
-            lb      = IM_R;
+            lb      = IM_R/pix_bin;
             r_bead  = (0:dyb) * lb;
         end
     else %itensity line is  hypotenuse llb and ssb are the legs
         llb = lb1:1:lb2;
         ssb = ceil( dsb/dlb * (0:dlb) + sb1);
         %lenght of eatch segmant along intesity line
-        lb = sqrt(dlb^2 + dsb^2) /dlb * IM_R;
+        lb = sqrt(dlb^2 + dsb^2) /dlb * IM_R/pix_bin;
         r_bead  = (0:dlb) * lb;
     end
     
@@ -121,6 +123,7 @@ if reso
 
     r = figure;
     r_ax = axes('Parent', r);
+    hold(r_ax, 'on');
     plot(fitt, r_bead, bead_sum, 'bx')
     set(findall(r,'-property','FontSize'),'FontSize',17)
     set(findall(r,'-property', 'MarkerSize'), 'MarkerSize', 12)

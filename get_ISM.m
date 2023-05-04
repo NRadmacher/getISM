@@ -73,6 +73,7 @@ img_name        = append(date,' ',img_name);
 ISM_name        = append(img_name, ' ISM');
 ISM_fw_name     = append(img_name, ' ISM Fourier-reweighted');
 colf_name       = append(img_name, ' no ISM');
+wf_name         = append(img_name, '  WF');
 LT_name         = append(img_name, ' lt');
 
 %read ISM data from .ptu file
@@ -152,11 +153,13 @@ max_lt = 8;
 pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
 pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
+[pix_count,~] = histcounts(im_chan, n_pixl);
+hex_plot(pix_count, hot);
 %% ISM reasigment
-fprintf('ISM reasigment\n');
+fprintf('ISM reasigment ... ');
+
 %shift vectors from file negativ sign is already included
-if n_pixl == 23
-    sv_file_name = 'SPAD_shift_vectors.m';
+if n_pixl == 23    
     if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
         sv_file_name = 'SPAD_shift_vectors_mite.m';
     end
@@ -174,76 +177,78 @@ ISM_posx    = im_posx + shift_x./(IM_R/0.05);
 ISM_posy    = im_posy + shift_y./(IM_R/0.05);
 
 clear shift_y shift_x;
+fprintf('Done!\n');
+%% wide field reasigment
+fprintf('Wide Filed reasigment ...');
 
-[pix_count,~] = histcounts(im_chan, n_pixl);
-hex_plot(pix_count, hot);
+sv_file_name = 'SPAD_shift_vectors_wf.m';
+sv_file = matfile(sv_file_name);
+sv = (sv_file.sv_wf);
+shift_x     = sv(1, im_chan+1).';
+shift_y     = sv(2, im_chan+1).';
 
+%apply Wide Field reassigment vektor
+WF_posx    = im_posx + shift_x./(IM_R/0.05);
+WF_posy    = im_posy + shift_y./(IM_R/0.05);
+
+clear shift_y shift_x;
+fprintf('Done!\n');
 %% Confocal Image
 %generate confocal image
 [sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
-% ind_x = im_posx >= 726.5 & im_posx < 727.5;
-% ind_y = im_posy == 154;
-% 
-% ind = ind_y&ind_x;
-% 
-% det_pixel = im_chan(ind);
-% 
-% [pix_count,~] = histcounts(det_pixel, n_pixl);
-% hex_plot(pix_count, hot);
-% 
-% det_x = -1.*[-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2];
-% A = ones(1,5).*sqrt(3);
-% B = zeros(1,5);
-% det_y = 1.*[A,A(1:end-1)./2,B,-A(1:end-1)./2,-A];
-% 
-% d_gauss = @(a, b, s1, s2, x, y) ...
-%     a * exp(-(x.^2+y.^2)/(2*s1^2) + b * exp(-(x.^2+y.^2)/(2*s2^2)));
-% d_gauss_fitt = fit([det_x.',det_y.'], pix_count.', d_gauss, ...
-%     'StartPoint', [10, 10, 0.7, 1.7], ...
-%     'Lower', [1, 1, 0.1, 0.1]);
-% [xx, yy] = meshgrid(-2:0.1:2,-2:0.1:2);
-% figure
-% hold on
-% test = d_gauss(d_gauss_fitt.a,d_gauss_fitt.b,d_gauss_fitt.s1,d_gauss_fitt.s2,xx,yy);
-% scatter3(det_x,det_y, pix_count)
-% surf(xx,yy,test)
-% axis square
-% clear im_posy im_posx;
-
 %plot and save
-reso_line_conf = [[105 105]; [136 176]];
 sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
 img_plot( sum_img_dc, hot, colf_name, ...
-    'confocal', 1, IM_R, 1, reso_line_conf, options.plot_reso, options.save_image);
+    'confocal', 1, IM_R, 1, options.conf_rio, options.reso_line_conf, ...
+    options.plot_reso, options.save_image);
 
+%% Wide Filed Image
+%generate confocal image
+[wf_img, ~, ~] = img_ps(WF_posx, WF_posy, s_pixl_x, s_pixl_y, options.WF_binning);
+
+WF_R = IM_R / options.WF_binning;
+
+%plot and save
+wf_img_dc = max(wf_img - sum(dc) * pix_time, 0);
+img_plot( wf_img_dc, hot, wf_name, ...
+    'wide field', 1, WF_R, 1, options.wf_rio, options.reso_line_wf, ...
+    options.plot_reso, options.save_image);
 %% ISM Image
 %crate ISM image
 [ISM_img, ISM_lin, ~]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
+if options.ISM_sampling ~= 1
+    [ISM_img, ~,~] = FourierUpsampling(ISM_img,options.ISM_sampling);
+end
+ISM_R = IM_R / options.ISM_sampling / ISM_binning;
+ISM_pix_time = pix_time / options.ISM_sampling;
 
 %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
 %23 pixels, either the same pixel in the sampel or a shifted on. But always
 %23. Thus darkcount = sum(dc)
 
 %plot and save
-reso_line_ISM =  [[108 108]; [136 176]];
-img_plot(max(ISM_img - sum(dc) * 0, 0), hot, ISM_name, ...
-    'ISM', 1, IM_R, ISM_binning, reso_line_ISM, options.plot_reso, ...
-    options.save_image);
-
+img_plot(max(ISM_img - sum(dc) * ISM_pix_time, 0), hot, ISM_name, ...
+    'ISM', 1, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_ISM, ...
+    options.plot_reso, options.save_image);
 %% Fourier-reweighted ISM
 
 if options.frw
+    if options.ISM_sampling ~= 1
+        FW_R = ISM_R;
+    else
+        %double the sampling points to get reweighting at twice the k-vectors
+        FW_R = ISM_R / 2;
+    end
+
     %calculate Fourier-reweighted ISM image
-    W_ISM_img1 = f_reweighting( max(ISM_img - sum(dc) * head.ImgHdr_PixelTime, 0), IM_R);
+    W_ISM_img1 = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R);
 
     %plot and save fr ISM
-    reso_line_frw = [[108 108]; [136 176]];
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier-reweighted ISM', ...
-        1, IM_R, ISM_binning, reso_line_frw, options.plot_reso, ...
-        options.save_image);
+        1, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_frw, ...
+        options.plot_reso, options.save_image);
 end
-
 %% Single Expoential lifetime
 if options.s_lifetime
     %get pixel lifetimes via MLE pattern matching
@@ -255,7 +260,6 @@ if options.s_lifetime
     %plot pxel wise lt values scaled with image intensity
     lt_img_plot(lt_img, ISM_img, c_map, lt_cut_off, [0.2 5], 'Lifetime', LT_name, 4, IM_R, 1)   
 end
-
 %% Tripple lifetime unmixing
 if options.t_lifetime
     % generate decay patterns from FL selecion[1.37 2.36 3.0]
@@ -270,7 +274,6 @@ if options.t_lifetime
 
     %function that optimises single images and pots merged image
 end
-
 %% Double lifetime unmixing
 if options.d_lifetime
     % generate decay patterns from FL selecion[1.37 2.36 3.0]
@@ -300,7 +303,6 @@ if options.d_lifetime
     merge_two_lt(lt_amp_img, names, LT_name, pattern_tau, IM_R);
 
 end
-
 %% Double lifetime double color
 if(options.q_lifetime || options.d_color)
     %start bin of second color
@@ -388,18 +390,16 @@ if(options.q_lifetime || options.d_color)
 
     end
 end
-
 %% SOFI
 if options.sofi
     ISM_SOFI_img = get_ISMSOFI(ISM_img, ISM_lin, im_time, head);
 
-    img_plot(ISM_SOFI_img, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, ISM_binning, reso_line_conf, 0, 1);
+    img_plot(ISM_SOFI_img, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, ISM_binning, options.reso_line_ISM, 0, 1);
 
     SOFI_img = get_ISMSOFI(sum_img, sum_lin, im_time, head);
 
-    img_plot(SOFI_img, spectrum, 'sofi sum', 'sofi sum', 1, IM_R, 1, reso_line_conf, 0, 1);
+    img_plot(SOFI_img, spectrum, 'sofi sum', 'sofi sum', 1, IM_R, 1, options.reso_line_ISM, 0, 1);
 end
-
 %% Additional figures for controle
 if options.add_plt
     f = figure;
@@ -408,6 +408,8 @@ if options.add_plt
     set(ax,'YScale', 'log')
     xlabel('tcspc bin')
     ylabel('count')
+
+    plot_pixeldecay(im_tcspc,im_chan,32)
     
     if options.t_lifetime
         [count, ~]   = histcounts(im_tcspc, tcspc_t);
@@ -484,21 +486,4 @@ if options.add_plt
         fprintf('%f %f %f %f\n',amp1/(amp1+amp2+amp3+offset), amp2/(amp1+amp2+amp3+offset),...
             amp3/(amp1+amp2+amp3+offset), offset/(amp1+amp2+amp3+offset))
     end
-    plot_pixeldecay(im_tcspc,im_chan,32)
-
-    % dt      = tcspc_bin_l;
-    % p       = max_bin * tcspc_bin_l;
-    % [irf,~] = histcounts(irf_tcspc,1:max_bin+1);
-    % [y, ~]  = histcounts(im_tcspc,1:max_bin+1);
-    % irf     = irf(1:tail_end);
-    % % y     = max(y - sum(dc) * head.MeasDesc_AcquisitionTime * 1.6e-3/max_bin,1e-1);
-    % y_all   = y(1:tail_end);
-    % max_y   = max(y_all);
-    % max_irf = max(irf);
-    % % irf     = irf.*max_y./max_irf;
-    % taus    = [0.5 1 2 3.45];
-    % lim     = [0 0 0 0;8 8 8 8];
-    % 
-    % [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 0, 1);
-
 end

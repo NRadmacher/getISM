@@ -65,3 +65,56 @@ end
     test_rgb = tensorprod(test_img,test_color,3,1);
     test_rgb = test_rgb./repmat(max(test_rgb,[],[1 2]), [size(test_rgb,[1 2]) 1]);
     rgb_img_plot(test_rgb, LT_name, 'Red: GFAP, Green: SYT, Blue: PSD95', 4, IM_R, 0)
+
+
+%%
+    % for sparse sample (at best SM) sqaring is the same a FW
+    img_plot((max(ISM_img - sum(dc) * ISM_pix_time, 0).^2), hot, ISM_sq_name, ...
+    'ISM real Raum quadrat', 1, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_ISM, ...
+    options.plot_reso, options.save_image);
+
+%% JE lt fit
+    % dt      = tcspc_bin_l;
+    % p       = max_bin * tcspc_bin_l;
+    % [irf,~] = histcounts(irf_tcspc,1:max_bin+1);
+    % [y, ~]  = histcounts(im_tcspc,1:max_bin+1);
+    % irf     = irf(1:tail_end);
+    % % y     = max(y - sum(dc) * head.MeasDesc_AcquisitionTime * 1.6e-3/max_bin,1e-1);
+    % y_all   = y(1:tail_end);
+    % max_y   = max(y_all);
+    % max_irf = max(irf);
+    % % irf     = irf.*max_y./max_irf;
+    % taus    = [0.5 1 2 3.45];
+    % lim     = [0 0 0 0;8 8 8 8];
+    % 
+    % [c, offset, A, tau, ~, ~, ~, ~, ~, ~] = Fluofit(irf, y_all, p, dt, taus, lim, 0, 1);
+%% focus ISM
+
+% ind_x = im_posx >= 726.5 & im_posx < 727.5;
+% ind_y = im_posy == 154;
+% 
+% ind = ind_y&ind_x;
+% 
+% det_pixel = im_chan(ind);
+% 
+% [pix_count,~] = histcounts(det_pixel, n_pixl);
+% hex_plot(pix_count, hot);
+% 
+% det_x = -1.*[-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2,-3/2,-1/2,1/2,3/2,-2,-1,0,1,2];
+% A = ones(1,5).*sqrt(3);
+% B = zeros(1,5);
+% det_y = 1.*[A,A(1:end-1)./2,B,-A(1:end-1)./2,-A];
+% 
+% d_gauss = @(a, b, s1, s2, x, y) ...
+%     a * exp(-(x.^2+y.^2)/(2*s1^2) + b * exp(-(x.^2+y.^2)/(2*s2^2)));
+% d_gauss_fitt = fit([det_x.',det_y.'], pix_count.', d_gauss, ...
+%     'StartPoint', [10, 10, 0.7, 1.7], ...
+%     'Lower', [1, 1, 0.1, 0.1]);
+% [xx, yy] = meshgrid(-2:0.1:2,-2:0.1:2);
+% figure
+% hold on
+% test = d_gauss(d_gauss_fitt.a,d_gauss_fitt.b,d_gauss_fitt.s1,d_gauss_fitt.s2,xx,yy);
+% scatter3(det_x,det_y, pix_count)
+% surf(xx,yy,test)
+% axis square
+% clear im_posy im_posx;

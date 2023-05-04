@@ -5,8 +5,8 @@ lamex = 0.64; % excitation wavelength in mum
 lamem = 0.70; % emission wavelength in mum
 fd = 1.8e3; % objective focal length in mum
 tubelens = 180e3; % tube lens focal length in mum
-mag = tubelens/fd; % magnification in pinhole plane
-av = 50/2; % pinhole radius in mum
+mag = 2*tubelens/fd; % magnification in pinhole plane
+av = 500/2; % pinhole radius in mum
 zpin = 0; % pinhole position raltive to focal plane
 % pix = 0.035; % step size of scanning in mum
 % rhofield = [0 0.8]; % radial range in mum to be considered
@@ -29,9 +29,7 @@ exc.fys = exc.fys + 1i*exc1.fys;
 exc.fzc = exc.fzc + 1i*exc1.fzc;
 exc.fzs = exc.fzs + 1i*exc1.fzs;
 
-
 mdf = GaussExc2MDF(exc, NA, n0, n, n1, focpos, lamem, mag, av, zpin, [], 0);
-
 
 %% cross section of excitation intensity distribution in focal plane
 [feld, phi, rr, ~] = FocusImage3D(exc.rho,exc.z,cat(4,cat(3,exc.fxc,exc.fxs),cat(3,exc.fyc,exc.fys),cat(3,exc.fzc,exc.fzs)));

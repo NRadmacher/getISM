@@ -42,7 +42,7 @@ fname = 'D:\PHD\Data\2022\220513\tetra_beads_100nm_003.ptu';
 % dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230203_g4_dc\dc_m15_pmt_001.ptu'; %PMT
 
 %MITE Setup
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230421_ISM_STORM\gatta_bead_atto647N_50nm_pix_3.ptu';
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230502_ISM_STROM\gatta_beads_atto647n18.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230418_ISM_STORM\beads_calibration_PSF_200mm_laser_off6.ptu';
 
 tmp_name        = strsplit(fname, '\');
