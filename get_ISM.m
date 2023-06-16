@@ -57,10 +57,6 @@ c_blue      = interp1(bl, b2, lambda);
 c_yellow    = interp1(bl, y2, lambda);
 c_map       = cmap_isoluminant75;
 
-% fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230413_CMs_fixed\CM_fixed_20kPa_ACTN2_citrine_Paxilin_SPAD_019.ptu';
-% dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230314_CMs_life\dc_spad_001.ptu';
-% irfname = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
-
 %Image title and name from file name
 tmp_name        = strsplit(fname, '\');
 folder_name     = tmp_name{end-1};
@@ -154,8 +150,6 @@ max_lt = 5;
 pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
 pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
-[pix_count,~] = histcounts(im_chan, n_pixl);
-% hex_plot(pix_count, hot);
 %% ISM reasigment
 fprintf('ISM reasigment ... ');
 
@@ -174,8 +168,8 @@ shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
 
 %apply ISM reassigment vektor
-ISM_posx    = im_posx + shift_x;
-ISM_posy    = im_posy + shift_y;
+ISM_posx    = im_posx + shift_x.*(0.05/IM_R);
+ISM_posy    = im_posy + shift_y.*(0.05/IM_R);
 
 clear shift_y shift_x;
 fprintf('Done!\n');
@@ -190,7 +184,7 @@ r_ax = axes('Parent', r);
 %plot and save
 sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
 img_plot( sum_img_dc, hot, colf_name, ...
-    'confocal', 0.5, IM_R, 1, options.conf_rio, options.reso_line_conf, ...
+    'confocal', 0.5, IM_R, options.conf_rio, options.reso_line_conf, ...
     options.plot_reso, options.save_image, r, r_ax);
 
 %% Wide Filed Image
@@ -218,7 +212,7 @@ if options.wf
     %plot and save
     wf_img_dc = max(wf_img - sum(dc) * pix_time, 0);
     img_plot( wf_img_dc, hot, wf_name, ...
-        'wide field', 0.5, WF_R, 1, options.wf_rio, options.reso_line_wf, ...
+        'wide field', 0.5, WF_R, options.wf_rio, options.reso_line_wf, ...
         options.plot_reso, options.save_image, r, r_ax);
 end
 
@@ -240,7 +234,7 @@ end
 
 %plot and save
 img_plot(max(ISM_img - sum(dc) * ISM_pix_time, 0), hot, ISM_name, ...
-    'ISM', 0.5, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_ISM, ...
+    'ISM', 0.5, ISM_R, options.ISM_rio, options.reso_line_ISM, ...
     options.plot_reso, options.save_image, r, r_ax);
 %% Fourier-reweighted ISM
 
@@ -257,7 +251,7 @@ if options.frw
 
     %plot and save fr ISM
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
-        0.5, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_frw, ...
+        0.5, ISM_R, options.ISM_rio, options.reso_line_frw, ...
         options.plot_reso, options.save_image, r, r_ax);
 
     if options.add_plt
@@ -268,7 +262,7 @@ if options.frw
         t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
 
         img_plot(t_psf, hot, PSF_name, 'confocal PSF', ...
-        0.5, FW_R, 1, 0, [[42 42]; [21 61]], ...
+        0.5, FW_R, 0, [[42 42]; [21 61]], ...
         options.plot_reso, options.save_image, r, r_ax);
 
         r_max = ceil(sqrt(2) * s_pixl_x / 2 * IM_R);
@@ -281,7 +275,7 @@ if options.frw
         t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
 
         img_plot(t_psf, hot, PSF_name, 'big step confocal PSF', ...
-        0.5, IM_R, 1, 0, [[22 22]; [11 31]], ...
+        0.5, IM_R, 0, [[22 22]; [11 31]], ...
         options.plot_reso, options.save_image, r, r_ax);
     end
 end
@@ -308,7 +302,7 @@ if options.s_lifetime
 
     %plot pxel wise lt values scaled with image intensity
     lt_img_plot(lt_img, ISM_img, c_map, lt_cut_off, options.lt_range, ...
-        'Lifetime', LT_name, 4, ISM_R, options.save_image)   
+        'Lifetime', LT_name, 4, ISM_R, ISM_binning, options.save_image)   
 end
 %% Tripple lifetime unmixing
 if options.t_lifetime
