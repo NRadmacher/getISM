@@ -72,6 +72,7 @@ img_name        = img_name{end-1};
 img_name        = append(date,' ',img_name);
 ISM_name        = append(img_name, ' ISM');
 ISM_fw_name     = append(img_name, ' ISM Fourier-reweighted');
+PSF_name         = append(img_name, ' psf');
 colf_name       = append(img_name, ' no ISM');
 wf_name         = append(img_name, '  WF');
 LT_name         = append(img_name, ' lt');
@@ -132,29 +133,29 @@ end
 max_bin = head.max_bin;
 
 % TCSPC binning factor
-bin_factor = 20;
+bin_factor = 1;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 10;
+lt_cut_off = 100;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm; diode [600/700,275], TiSa [250], SEPIA [1700]
-tail_start = 700;
+tail_start = 130;
 
 % tcspc tail_end in tcspc bin number
-tail_end = max_bin - 100;
+tail_end = max_bin - 20;
 
 [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(tail_start, tail_end, time_R, bin_factor);
 
 % Max Lifetime in ns
-max_lt = 8;
+max_lt = 5;
 
 % Normalised monoexponetial decay with background
 pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
 pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
 [pix_count,~] = histcounts(im_chan, n_pixl);
-hex_plot(pix_count, hot);
+% hex_plot(pix_count, hot);
 %% ISM reasigment
 fprintf('ISM reasigment ... ');
 
@@ -173,55 +174,65 @@ shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
 
 %apply ISM reassigment vektor
-ISM_posx    = im_posx + shift_x./(IM_R/0.05);
-ISM_posy    = im_posy + shift_y./(IM_R/0.05);
+ISM_posx    = im_posx + shift_x;
+ISM_posy    = im_posy + shift_y;
 
 clear shift_y shift_x;
 fprintf('Done!\n');
-%% wide field reasigment
-fprintf('Wide Filed reasigment ...');
 
-sv_file_name = 'SPAD_shift_vectors_wf.m';
-sv_file = matfile(sv_file_name);
-sv = (sv_file.sv_wf);
-shift_x     = sv(1, im_chan+1).';
-shift_y     = sv(2, im_chan+1).';
-
-%apply Wide Field reassigment vektor
-WF_posx    = im_posx + shift_x./(IM_R/0.05);
-WF_posy    = im_posy + shift_y./(IM_R/0.05);
-
-clear shift_y shift_x;
-fprintf('Done!\n');
 %% Confocal Image
 %generate confocal image
 [sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
+r = figure('Visible','off');
+r_ax = axes('Parent', r);
+
 %plot and save
 sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
 img_plot( sum_img_dc, hot, colf_name, ...
-    'confocal', 1, IM_R, 1, options.conf_rio, options.reso_line_conf, ...
-    options.plot_reso, options.save_image);
+    'confocal', 0.5, IM_R, 1, options.conf_rio, options.reso_line_conf, ...
+    options.plot_reso, options.save_image, r, r_ax);
 
 %% Wide Filed Image
-%generate confocal image
-[wf_img, ~, ~] = img_ps(WF_posx, WF_posy, s_pixl_x, s_pixl_y, options.WF_binning);
 
-WF_R = IM_R / options.WF_binning;
+if options.wf
+    fprintf('Wide Filed reasigment ...');
+    
+    sv_file_name = 'SPAD_shift_vectors_wf.m';
+    sv_file = matfile(sv_file_name);
+    sv = (sv_file.sv_wf);
+    shift_x     = sv(1, im_chan+1).';
+    shift_y     = sv(2, im_chan+1).';
+    
+    %apply Wide Field reassigment vektor
+    WF_posx    = im_posx + shift_x./(IM_R/0.05);
+    WF_posy    = im_posy + shift_y./(IM_R/0.05);
+    
+    clear shift_y shift_x;
+    fprintf('Done!\n');
+    %generate confocal image
+    [wf_img, ~, ~] = img_ps(WF_posx, WF_posy, s_pixl_x, s_pixl_y, options.WF_binning);
+    
+    WF_R = IM_R / options.WF_binning;
+    
+    %plot and save
+    wf_img_dc = max(wf_img - sum(dc) * pix_time, 0);
+    img_plot( wf_img_dc, hot, wf_name, ...
+        'wide field', 0.5, WF_R, 1, options.wf_rio, options.reso_line_wf, ...
+        options.plot_reso, options.save_image, r, r_ax);
+end
 
-%plot and save
-wf_img_dc = max(wf_img - sum(dc) * pix_time, 0);
-img_plot( wf_img_dc, hot, wf_name, ...
-    'wide field', 1, WF_R, 1, options.wf_rio, options.reso_line_wf, ...
-    options.plot_reso, options.save_image);
 %% ISM Image
 %crate ISM image
 [ISM_img, ISM_lin, ~]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
-if options.ISM_sampling ~= 1
-    [ISM_img, ~,~] = FourierUpsampling(ISM_img,options.ISM_sampling);
+if options.ISM_sampling
+    [ISM_img, ~,~] = FourierUpsampling(ISM_img, 2);
+    ISM_R = IM_R / 2 / ISM_binning;
+    ISM_pix_time = pix_time / 2;
+else
+    ISM_R = IM_R / ISM_binning;
+    ISM_pix_time = pix_time;
 end
-ISM_R = IM_R / options.ISM_sampling / ISM_binning;
-ISM_pix_time = pix_time / options.ISM_sampling;
 
 %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
 %23 pixels, either the same pixel in the sampel or a shifted on. But always
@@ -229,25 +240,62 @@ ISM_pix_time = pix_time / options.ISM_sampling;
 
 %plot and save
 img_plot(max(ISM_img - sum(dc) * ISM_pix_time, 0), hot, ISM_name, ...
-    'ISM', 1, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_ISM, ...
-    options.plot_reso, options.save_image);
+    'ISM', 0.5, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_ISM, ...
+    options.plot_reso, options.save_image, r, r_ax);
 %% Fourier-reweighted ISM
 
 if options.frw
-    if options.ISM_sampling ~= 1
+    if options.ISM_sampling
         FW_R = ISM_R;
     else
         %double the sampling points to get reweighting at twice the k-vectors
         FW_R = ISM_R / 2;
     end
-
+    
     %calculate Fourier-reweighted ISM image
-    W_ISM_img1 = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R);
+    [W_ISM_img1, t_psf] = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R);
 
     %plot and save fr ISM
-    img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier-reweighted ISM', ...
-        1, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_frw, ...
-        options.plot_reso, options.save_image);
+    img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
+        0.5, ISM_R, ISM_binning, options.ISM_rio, options.reso_line_frw, ...
+        options.plot_reso, options.save_image, r, r_ax);
+
+    if options.add_plt
+        %iamge size 
+        nx = -options.ISM_rio(1,1)+options.ISM_rio(2,1);
+        ny = -options.ISM_rio(1,2)+options.ISM_rio(2,2);
+        [Nx,Ny] = size(t_psf);
+        t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
+
+        img_plot(t_psf, hot, PSF_name, 'confocal PSF', ...
+        0.5, FW_R, 1, 0, [[42 42]; [21 61]], ...
+        options.plot_reso, options.save_image, r, r_ax);
+
+        r_max = ceil(sqrt(2) * s_pixl_x / 2 * IM_R);
+        [~, t_psf] = get_psf([0 3], IM_R);
+
+        %iamge size 
+        nx = -options.conf_rio(1,1)+options.conf_rio(2,1);
+        ny = -options.conf_rio(1,2)+options.conf_rio(2,2);
+        [Nx,Ny] = size(t_psf);
+        t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
+
+        img_plot(t_psf, hot, PSF_name, 'big step confocal PSF', ...
+        0.5, IM_R, 1, 0, [[22 22]; [11 31]], ...
+        options.plot_reso, options.save_image, r, r_ax);
+    end
+end
+%% Plot reso
+
+if options.plot_reso
+    set(r, 'Visible', 'on')
+    grid(r_ax, 'on');
+    box(r_ax, 'on');
+%     xlim(r_ax,[0.5 2]);
+    lgd = legend(r_ax, 'confocal', '','ISM','','FRW ISM','','PSF 25nm','','PSF 50nm');
+    lgd.Location = 'best';
+    file_name = append(img_name,'_reso.pdf');
+    exportgraphics(r_ax, file_name,'Resolution',600)
 end
 %% Single Expoential lifetime
 if options.s_lifetime
@@ -255,10 +303,12 @@ if options.s_lifetime
     lt_img = get_single_lifetime(ISM_img,ISM_lin,...
         im_tcspc = im_tcspc, tail_t = tail_t, tail_bin_l = tail_bin_l,...
         tail_start_time = tail_start_time, tcspc_t = tcspc_t,...
-        max_lt = max_lt, lt_cut_off = lt_cut_off, fname = LT_name);
+        max_lt = max_lt, lt_cut_off = lt_cut_off, fname = LT_name, ...
+        ana_plt = options.add_plt);
 
     %plot pxel wise lt values scaled with image intensity
-    lt_img_plot(lt_img, ISM_img, c_map, lt_cut_off, [0.2 5], 'Lifetime', LT_name, 4, IM_R, 1)   
+    lt_img_plot(lt_img, ISM_img, c_map, lt_cut_off, options.lt_range, ...
+        'Lifetime', LT_name, 4, ISM_R, options.save_image)   
 end
 %% Tripple lifetime unmixing
 if options.t_lifetime

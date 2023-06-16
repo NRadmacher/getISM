@@ -1,11 +1,10 @@
-function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, pix_bin, roi, reso_line, reso, save)
+function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, pix_bin, roi, reso_line, reso, save, f, f_ax)
 %IMG_PLOT plot 2D image with color bar and scale and save to dir
 
 if roi == 0
     roi = [1 1; size(img,1) size(img,2)];
 end
 % ymin xin ;ymax xmax
-% roi = [114 78; 195 158];
 img = img( roi(1,1):roi(2,1), roi(1,2) : roi(2,2));
 
 %cut artefacts at edges
@@ -40,8 +39,9 @@ if max(img,[],'all') == 1
 else
     c.Label.String = 'Count';
 end
+colorbar('off')
 set(findall(h,'-property','FontSize'),'FontSize',13)
-title(title_n);
+% title(append(title_n, ' image'),'FontSize',15);
 
 if reso
     
@@ -99,15 +99,12 @@ if reso
     
     lin = sub2ind(size(img), yb, xb);
     bead_sum = img(lin);
-
+    bead_sum = bead_sum./max(bead_sum);
     fitt = fit(r_bead.', bead_sum.', 'gauss1');
 
     sig = fitt.c1/sqrt(2);
-    ci = confint(fitt,0.95)/2;
-    sig_err = abs(sig - max(ci(:,3)));
-
-%     fwhm = 2*sqrt(2 * log(2)) * sig;
-%     fwhm_err = 2*sqrt(2 * log(2)) * sig_err;
+    ci = confint(fitt,0.682);
+    sig_err = abs( sig - max(ci(:,3))/sqrt(2) );
     
     two_sig = 2 * sig;
     fwhm_err = 2 * sig_err;
@@ -119,19 +116,27 @@ if reso
     fwhm_err = round(fwhm_err, sig_deci);
     two_sig = round(two_sig, sig_deci);
 
-    fit_stg = sprintf(' %g \x00B1 %g nm', two_sig*1000, fwhm_err*1000);
+    fit_stg = sprintf('resolutio: %g \x00B1 %g nm', two_sig*1000, fwhm_err*1000);
+    fprintf(append(name, ' ', fit_stg, '\n'));
 
-    r = figure;
-    r_ax = axes('Parent', r);
-    hold(r_ax, 'on');
-    plot(fitt, r_bead, bead_sum, 'bx')
+%     r = figure;
+%     r_ax = axes('Parent', r);
+    r = f;
+    axes(f_ax)
+    hold on
+    p = plot(r_bead, bead_sum, 'x', 'DisplayName', title_n);
+    xx = linspace(min(r_bead), max(r_bead), 1000);
+    yy = feval(fitt, xx);
+    plot(xx, yy,'Color', p.Color)
+%     plot(xx, yy,'Color', p.Color, 'DisplayName', fit_stg)
     set(findall(r,'-property','FontSize'),'FontSize',17)
     set(findall(r,'-property', 'MarkerSize'), 'MarkerSize', 12)
     set(findall(r,'-property','LineWidth'),'LineWidth',1.5)
 %     ylim([0 1.1])
-    xlabel(sprintf('distance / %sm',char(181)));
-    ylabel('intensity');
-    legend({' data', [' gaussian fit' newline ' resolution:' newline fit_stg]}, 'Location', 'northwest')
+    xlabel(sprintf('distance [%sm]',char(181)));
+    ylabel('rel. intensity');
+%     legappend({' data', [' gaussian fit' newline ' resolution:' newline fit_stg]}, 'Location', 'northwest')
+%     legend
     grid on
     line(ax,[xb1,xb2],[yb1,yb2],'Color','r', 'LineWidth', 2);
 end
@@ -141,8 +146,8 @@ if save
     exportgraphics(ax, file_name,'Resolution',600)
    
     if reso
-        file_name = append(name,'_reso.png');
-        exportgraphics(r_ax, file_name,'Resolution',600)
+%         file_name = append(name,'_reso.png');
+%         exportgraphics(f_ax, file_name,'Resolution',600)
     end
 
     spath = append(pwd,'\',name, '.tif');

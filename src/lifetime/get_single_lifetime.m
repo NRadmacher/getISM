@@ -83,7 +83,7 @@ if(options.ana_plt)
     % Lifetime distribution
     lt_hist = lt_img(img > options.lt_cut_off);
     lt_hist = lt_hist(lt_hist > 0.1 & lt_hist < options.max_lt);
-    histogram(lt_hist,linspace(0.01,options.max_lt,500),'Normalization','count')
+    histogram(lt_hist,linspace(0.01,options.max_lt,50),'Normalization','count')
     xlabel('lifetime [ns]')
     ylabel('# pixels')
     m = mean(lt_hist);

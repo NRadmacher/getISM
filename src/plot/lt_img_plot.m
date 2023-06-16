@@ -1,14 +1,11 @@
 function lt_img_plot(lt_img, in_img,c_map,threshold,lims, titel_name, name,sb_lenght,IM_R, save)
 %IMG_PLOT plot 2D image with color bar and scale and save to dir
-
-% lims = [1 3];
 gamma = 1;
 
 lt_img = lt_img(5:end-4,5:end-4);
 in_img = in_img(5:end-4,5:end-4);
 
-P = prctile(in_img(in_img>0),[10, 99], 'all');
-% in_img = mat2gray(in_img,[threshold P(2)]);
+TNTvisualizer({in_img, lt_img}, struct('title',titel_name,'metadata',struct('pixelsize',IM_R,'pixelsize_unit',[char(181) 'm'])))
 
 im = LT_image(lt_img, in_img, c_map, threshold, gamma, lims);
 h = figure;

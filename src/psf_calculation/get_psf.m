@@ -6,9 +6,9 @@ lamem = 0.70; % emission wavelength in mum
 fd = 1.8e3; % objective focal length in mum
 tubelens = 180e3; % tube lens focal length in mum
 mag = 2*tubelens/fd; % magnification in pinhole plane
-av = 500/2; % pinhole radius in mum
+av = 1000/2; % pinhole radius in mum
 zpin = 0; % pinhole position raltive to focal plane
-% pix = 0.035; % step size of scanning in mum
+% pix = 0.05; % step size of scanning in mum
 % rhofield = [0 0.8]; % radial range in mum to be considered
 zfield = [-1 1]; % axial range in mum to be considered
 n0 = 1.5; % ref index of immersion medium = oil/glass
@@ -54,8 +54,4 @@ psi = angle(xx+1i*yy)+pi;
 rad = sqrt(xx.^2+yy.^2);
 psf = interp2(squeeze(phi(:,ind,:)),squeeze(rr(:,ind,:)),...
     squeeze(sum(abs(feld(:,ind,:,:)).^2,4)),psi,rad,'cubic');
-
-% figure
-% imagesc(xx(1,:),yy(:,1),psf);
-% axis square
-% title('PSF')
+end

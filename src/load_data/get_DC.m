@@ -58,7 +58,7 @@ if(plt)
     set(ax,'YScale', 'log', 'FontSize',13,'FontWeight','bold', 'LineWidth',1)
     grid(ax,"on")
     ylim(ax,[10^(floor(log10(min(dc(:))))) 10^(ceil(log10(max(dc(:)))))])
-    ylim(ax,[1 10^(ceil(log10(max(dc(:)))))])
+    %ylim(ax,[1 10^(ceil(log10(max(dc(:)))))])
 
     file_name = append(img_name,'_bar.png');
     exportgraphics(ax, file_name,'Resolution',600)

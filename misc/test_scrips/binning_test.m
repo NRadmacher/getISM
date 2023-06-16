@@ -1,6 +1,6 @@
 %% 
 clear
-close all
+% close all
 clc
 
 %% Loadind data
@@ -11,7 +11,7 @@ xl = 1:255/7:256;%like linespace but stepsize
 yl = [[0 0 0]; [0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]; [1 0 1]];
 lambda   = 1:256;
 spectrum = interp1(xl, yl, lambda);
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230424_ISM_STORM\gatta_quant_beadsR_50nm_pix_1.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230615_ISM_STORM\neurons_4pfa_psd95_syt1_alexa647_atto655_PBS_power6p5_OD3_roi1_3.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230418_ISM_STORM\beads_calibration_PSF_200mm_laser_off6.ptu';
 
 tmp_name = strsplit(fname, '\');
@@ -51,8 +51,8 @@ disp("ISM reasigment")
 % im_pix = im_pix - 9;
 
 %shift vectors from file negativ sign is already included
-sv_file = matfile('SPAD_shift_vectors_wf.m');
-sv = sv_file.sv_wf;
+sv_file = matfile('SPAD_shift_vectors_mite.m');
+sv = sv_file.shift_vector;
 shift_x     = sv(1, im_pix+1).';
 shift_y     = sv(2, im_pix+1).';
 
@@ -67,10 +67,14 @@ handles.Image = ISM_img;
 ysize = size(ISM_img,1);
 xsize = size(ISM_img,2);
 handles.fig = figure;
+max_s = round(ysize*1.2);
+min_s = round(ysize*0.8);
+minor_step = 1/(max_s-min_s);
+major_step = 10*minor_step;
 handles.slider = uicontrol( 'Style','slider',...
                             'Position',[0 0 500 20],...
-                            'SliderStep', [0.0025, 0.1],...
-                            'Min',0.80,'Max',1.2,'Value',1);
+                            'SliderStep', [minor_step, major_step],...
+                            'Min',min_s,'Max',max_s,'Value',ysize);
 handles.Listener = addlistener(handles.slider,'Value','PostSet',@(s,e) deconvolve(handles, ISM_posx, ISM_posy, s_pixl_x, s_pixl_y));
 % axis off;
 colormap(hot)
@@ -88,7 +92,8 @@ set(gca,'DataAspectRatio', [1,1,1], ...
 
 function deconvolve(handles, ISM_posx, ISM_posy, s_pixl_x, s_pixl_y)
     slider_value = get(handles.slider,'Value');
-    ISM_img  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y,slider_value);
+    binning = slider_value/s_pixl_y;
+    ISM_img  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y,binning);
     ysize = size(ISM_img,1);
     xsize = size(ISM_img,2);
     handles.Image=ISM_img;
@@ -101,6 +106,7 @@ function deconvolve(handles, ISM_posx, ISM_posy, s_pixl_x, s_pixl_y)
     'YDir','reverse');
 %     axis off;
     colormap(hot)
-    title(sprintf('binning: %f. y pixel: %f',slider_value, ysize))
+    title(sprintf('slider value: %f, binning: %f, y pixel: %f',slider_value, binning, ysize))
+    drawnow
 end
 

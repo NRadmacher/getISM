@@ -42,7 +42,7 @@ fname = 'D:\PHD\Data\2022\220513\tetra_beads_100nm_003.ptu';
 % dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230203_g4_dc\dc_m15_pmt_001.ptu'; %PMT
 
 %MITE Setup
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230502_ISM_STROM\gatta_beads_atto647n18.ptu';
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230424_ISM_STORM\STORM_test_gatta_quant_beadsR_50nm_27p9_pix_3.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230418_ISM_STORM\beads_calibration_PSF_200mm_laser_off6.ptu';
 
 tmp_name        = strsplit(fname, '\');
@@ -78,7 +78,7 @@ if(sum(head.HWInpChan_Enabled) > 23)
     i = 9;
 else
     n_pixl = 23;
-    title_name = 'SPAD shift vectors';
+    title_name = 'shift vectors';
     save_name = 'SPAD_shift_vectors.m';
 %     im_chan = im_chan-9;
     pix_time = head.ImgHdr_PixelTime;
@@ -87,7 +87,7 @@ end
 
 if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
     n_pixl = 23;
-    title_name = 'SPAD shift vectors';
+    title_name = 'shift vectors';
     save_name = 'SPAD_shift_vectors_mite.m';
     %timer per pixel in total
     pix_time = head.ImgHdr_MaxFrames * head.ImgHdr_TimePerPixel/1e3;
@@ -135,35 +135,13 @@ parfor j = 1:n_pixl
     
     %Phase correlarion to find shift between ism images(unshifted)
     %image i is the "center"
-    [dx,dy] = phase_corr(center,imgs{j});
-    shift_x_pc(j) =  dx;
-    shift_y_pc(j) =  dy;
     
     [dx,dy] = image_corr(center,imgs{j}, wd);
     shift_x_ic(j) =  dx;
     shift_y_ic(j) =  dy;
 end
-xc  = -1.*(shift_x_pc);
-yc  = -1.*(shift_y_pc);
-% this is the shift vector for each channel no alpha needed here
-sv_pc  = -[xc; yc]/alpha;
 
 %% plots
-% figure
-% axis equal
-% hold on
-% quiver(xc.*2, yc.*2 ,sv_pc(1,:),sv_pc(2,:),0, 'LineWidth', 2)  
-% numb = 0:n_pixl-1;
-% txt = string(numb);
-% plot(xc, yc,'xb','MarkerSize',10, 'LineWidth', 2 ,'MarkerEdgeColor', 'green')
-% text(xc+0.2, yc, txt)
-% set(gca,'DataAspectRatio', [1,1,1], ...
-%     'PlotBoxAspectRatio',[1 1 1]);
-% ylabel('y shift [pixel]')
-% xlabel('x shift [pixel]')
-% grid on
-% box on
-% title(append(title_name,' pc'))
 
 xc  = -1.*(shift_x_ic)/alpha;
 yc  = -1.*(shift_y_ic)/alpha;
@@ -173,7 +151,6 @@ sv_ic  = -[xc, yc];
 h = figure;
 ax = axes(h);
 hold on
-axis equal
 quiver(xc.*2, yc.*2 ,sv_ic(:,1),sv_ic(:,2),0, 'LineWidth', 2)  
 numb = 0:n_pixl-1;
 txt = string(numb);
@@ -185,22 +162,25 @@ ylabel('y shift [pixel]')
 xlabel('x shift [pixel]')
 XL = get(ax, 'XLim');
 xl = XL(2) - XL(1);
-text(xc.*2+(0.05*xl), yc.*2, txt)
+text(xc.*2+(0.025*xl), yc.*2+(0.03*xl), txt)
 grid on
 box on
+set(findall(h,'-property','FontSize'),'FontSize',12)
+set(findall(h,'-property','LineWidth'),'LineWidth',1.5)
 %make axis perfect square
-limits = max([abs(ax.YLim), abs(ax.XLim)], [], 'all');
+limits = max([abs(ax.YLim), abs(ax.XLim)], [], 'all').*1.15;
 ylim( [-limits, limits] );
 xlim( [-limits, limits] );
-title(append(title_name,' ic'))
+set(ax,'YTick',get(ax,'XTick'));
+title(append(title_name,' image correlation'), 'FontSize', 15)
 name = append(img_name, '_sv');
-file_name = append(name,'.png');
+file_name = append(name,'.pdf');
 exportgraphics(ax, file_name,'Resolution',600)
 
 inner = mean([norm(sv_ic(17,:)), norm(sv_ic(16,:)), norm(sv_ic(11,:)), norm(sv_ic(7,:)), norm(sv_ic(8,:)), norm(sv_ic(13,:))]);
 disp(inner)
 [pix_count,~] = histcounts(im_chan, n_pixl);
-hex_plot(pix_count, hot);
+% hex_plot(pix_count, hot);
 %% save 
 shift_vector = sv_ic.';
 save(save_name, 'shift_vector');
