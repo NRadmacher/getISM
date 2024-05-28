@@ -1,30 +1,10 @@
 function get_ISM(fname, dcname, irfname, options)
-%% Clear shit  up
-% F = findall(0,'type','figure','tag','TMWWaitbar');
-% delete(F)
-% clear
-% close all
-% clc
-
-%%
 
 arguments
     fname char             
     dcname char           
     irfname char          
     options (1,1) struct
-%     options.lifetime     double = 0
-%     options.s_lifetime double   = 0
-%     options.d_lifetime double   = 0
-%     options.d_color    double   = 0
-%     options.t_lifetime double   = 0
-%     options.q_lifetime double   = 0
-%     options.deconv     double   = 0
-%     options.frw        double   = 0
-%     options.sofi       double   = 0
-%     options.add_plt    double   = 0
-%     options.save_image double   = 0
-%     options.plot_reso  double   = 0
 end
 %% Loadind data
 
@@ -74,7 +54,12 @@ wf_name         = append(img_name, '  WF');
 LT_name         = append(img_name, ' lt');
 
 %read ISM data from .ptu file
-[im_chan,im_tcspc,im_posy,im_posx,im_time,head] = read_ISM(fname);
+% [im_chan,im_tcspc,im_posy,im_posx,im_time,head] = read_ISM(fname);
+
+[im_time, im_tcspc, im_posx, im_posy, im_chan, head] = ScanRead(fname);
+
+im_posx = double(im_posx);
+im_posy = double(im_posy);
 
 ind             = im_posy<=head.ImgHdr_PixY;
 im_tcspc        = im_tcspc(ind);
@@ -126,13 +111,14 @@ if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
     pix_time = head.ImgHdr_MaxFrames * head.ImgHdr_TimePerPixel/1e3;
 end
 
-max_bin = head.max_bin;
+max_bin = 1200;   
+%max_bin = head.max_bin;
 
 % TCSPC binning factor
 bin_factor = 1;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 100;
+lt_cut_off = 10;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm; diode [600/700,275], TiSa [250], SEPIA [1700]
@@ -144,35 +130,35 @@ tail_end = max_bin - 20;
 [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(tail_start, tail_end, time_R, bin_factor);
 
 % Max Lifetime in ns
-max_lt = 5;
+max_lt = 4;
 
 % Normalised monoexponetial decay with background
 pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
 pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(pfun_monoexp(tau,x,dt),1);
 
-%% ISM reasigment
-fprintf('ISM reasigment ... ');
+hex_plot(histcounts(im_chan,n_pixl), hot);
+%% seperate frames
+% 
+% binning = 1;
+% binFrame = 500;
+% pix_time = 0;
+% 
+% sFrame = 1+(binFrame-1)*binning;
+% eFrame = binFrame*binning;
+% 
+% 
+% sTime = sFrame * head.ImgHdr_FrameTime;
+% etime = eFrame * head.ImgHdr_FrameTime;
+% ind = im_time<etime & im_time>sTime;%9.5;
+% 
+% im_tcspc        = im_tcspc(ind);
+% im_chan         = im_chan(ind);
+% im_posx         = im_posx(ind);
+% im_posy         = im_posy(ind);
+% im_time         = im_time(ind);
 
-%shift vectors from file negativ sign is already included
-if n_pixl == 23    
-    if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
-        sv_file_name = 'SPAD_shift_vectors_mite.m';
-    end
-else
-    sv_file_name = 'MPMT_shift_vectors.m';
-end
-
-sv_file = matfile(sv_file_name);
-sv = (sv_file.shift_vector);
-shift_x     = sv(1, im_chan+1).';
-shift_y     = sv(2, im_chan+1).';
-
-%apply ISM reassigment vektor
-ISM_posx    = im_posx + shift_x.*(0.05/IM_R);
-ISM_posy    = im_posy + shift_y.*(0.05/IM_R);
-
-clear shift_y shift_x;
-fprintf('Done!\n');
+% s_pixl_y = head.ImgHdr_LineNum;
+% s_pixl_x = head.ImgHdr_PixNum/head.ImgHdr_LineNum;
 
 %% Confocal Image
 %generate confocal image
@@ -183,8 +169,8 @@ r_ax = axes('Parent', r);
 
 %plot and save
 sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
-img_plot( sum_img_dc, hot, colf_name, ...
-    'confocal', 0.5, IM_R, options.conf_rio, options.reso_line_conf, ...
+img_plot( sum_img, hot, colf_name, ...
+    'confocal', options.sb_lenght, IM_R, options.conf_rio, options.reso_line_conf, ...
     options.plot_reso, options.save_image, r, r_ax);
 
 %% Wide Filed Image
@@ -212,30 +198,64 @@ if options.wf
     %plot and save
     wf_img_dc = max(wf_img - sum(dc) * pix_time, 0);
     img_plot( wf_img_dc, hot, wf_name, ...
-        'wide field', 0.5, WF_R, options.wf_rio, options.reso_line_wf, ...
+        'wide field', options.sb_lenght, WF_R, options.wf_rio, options.reso_line_wf, ...
         options.plot_reso, options.save_image, r, r_ax);
 end
 
-%% ISM Image
-%crate ISM image
-[ISM_img, ISM_lin, ~]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
-if options.ISM_sampling
-    [ISM_img, ~,~] = FourierUpsampling(ISM_img, 2);
-    ISM_R = IM_R / 2 / ISM_binning;
-    ISM_pix_time = pix_time / 2;
-else
-    ISM_R = IM_R / ISM_binning;
-    ISM_pix_time = pix_time;
+%% ISM reasigment
+if options.ISM
+    fprintf('ISM reasigment ... ');
+    
+    %shift vectors from file negativ sign is already included
+    if n_pixl == 23    
+        if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
+            sv_file_name = 'SPAD_shift_vectors_mite.m';
+        end
+    else
+        sv_file_name = 'MPMT_shift_vectors.m';
+    end
+    
+    calib = open('ismCallibration231206_ISMcali.mat');
+    
+    % sv_file = matfile(sv_file_name);
+    % sv = (sv_file.shift_vector);
+    sv = calib.shiftVector;
+    shift_x     = sv(1, im_chan+1).';
+    shift_y     = sv(2, im_chan+1).';
+    
+    [optBinning] = getISMbinning(s_pixl_y,sv, 5);
+    
+    ISM_binning = 1;
+    % ISM_binning = options.ISM_binning;
+    %apply ISM reassigment vektor
+    ISM_posx    = im_posx + shift_x.*(0.05/IM_R);
+    ISM_posy    = im_posy + shift_y.*(0.05/IM_R);
+    
+    clear shift_y shift_x;
+    fprintf('Done!\n');
 end
-
-%calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
-%23 pixels, either the same pixel in the sampel or a shifted on. But always
-%23. Thus darkcount = sum(dc)
-
-%plot and save
-img_plot(max(ISM_img - sum(dc) * ISM_pix_time, 0), hot, ISM_name, ...
-    'ISM', 0.5, ISM_R, options.ISM_rio, options.reso_line_ISM, ...
-    options.plot_reso, options.save_image, r, r_ax);
+%% ISM Image
+if options.ISM
+    %crate ISM image
+    [ISM_img, ISM_lin, ~]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
+    if options.ISM_sampling
+        [ISM_img, ~,~] = FourierUpsampling(ISM_img, 2);
+        ISM_R = IM_R / 2 / ISM_binning;
+        ISM_pix_time = pix_time / 2;
+    else
+        ISM_R = IM_R / ISM_binning;
+        ISM_pix_time = pix_time;
+    end
+    
+    %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
+    %23 pixels, either the same pixel in the sampel or a shifted on. But always
+    %23. Thus darkcount = sum(dc)
+    
+    %plot and save
+    img_plot(max(ISM_img - sum(dc) * ISM_pix_time, 0), hot, ISM_name, ...
+        'ISM', options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_ISM, ...
+        options.plot_reso, options.save_image, r, r_ax);
+end
 %% Fourier-reweighted ISM
 
 if options.frw
@@ -246,36 +266,30 @@ if options.frw
         FW_R = ISM_R / 2;
     end
     
+    %jörg PSF fit
+%     [over, int] = NielsPSFFit(sum_img_dc);
     %calculate Fourier-reweighted ISM image
-    [W_ISM_img1, t_psf] = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R);
-
+    [W_ISM_img1, t_psf] = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R, calib.over, calib.psf);
+    
     %plot and save fr ISM
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
-        0.5, ISM_R, options.ISM_rio, options.reso_line_frw, ...
+        options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_frw, ...
         options.plot_reso, options.save_image, r, r_ax);
 
     if options.add_plt
         %iamge size 
-        nx = -options.ISM_rio(1,1)+options.ISM_rio(2,1);
-        ny = -options.ISM_rio(1,2)+options.ISM_rio(2,2);
-        [Nx,Ny] = size(t_psf);
-        t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
-
-        img_plot(t_psf, hot, PSF_name, 'confocal PSF', ...
-        0.5, FW_R, 0, [[42 42]; [21 61]], ...
-        options.plot_reso, options.save_image, r, r_ax);
-
-        r_max = ceil(sqrt(2) * s_pixl_x / 2 * IM_R);
-        [~, t_psf] = get_psf([0 3], IM_R);
-
-        %iamge size 
+        t_psf = calib.psf;
         nx = -options.conf_rio(1,1)+options.conf_rio(2,1);
         ny = -options.conf_rio(1,2)+options.conf_rio(2,2);
         [Nx,Ny] = size(t_psf);
+        if Nx<nx || Ny<ny
+            nx = Nx;
+            ny = Ny;
+        end
         t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
 
-        img_plot(t_psf, hot, PSF_name, 'big step confocal PSF', ...
-        0.5, IM_R, 0, [[22 22]; [11 31]], ...
+        img_plot(t_psf, hot, PSF_name, 'confocal PSF', ...
+        0.5, IM_R, 0, [[17 17]; [16-10 16+10]], ...
         options.plot_reso, options.save_image, r, r_ax);
     end
 end
@@ -286,7 +300,7 @@ if options.plot_reso
     grid(r_ax, 'on');
     box(r_ax, 'on');
 %     xlim(r_ax,[0.5 2]);
-    lgd = legend(r_ax, 'confocal', '','ISM','','FRW ISM','','PSF 25nm','','PSF 50nm');
+    lgd = legend(r_ax, 'confocal', '','ISM','','FRW ISM');
     lgd.Location = 'best';
     file_name = append(img_name,'_reso.pdf');
     exportgraphics(r_ax, file_name,'Resolution',600)
@@ -321,14 +335,21 @@ end
 %% Double lifetime unmixing
 if options.d_lifetime
     % generate decay patterns from FL selecion[1.37 2.36 3.0]
-    pattern_tau = [1.2 2.7 inf];
+    
+    % tail time that starts at 0
+    xx = tail_t-tail_start_time;
+
+    % tcspc histogram
+    [count, ~]   = histcounts(im_tcspc, tcspc_t);
+    [~,tau] = double_exp(xx.',count.');
+    pattern_tau = tau;
     pattern = pfun_monoexpBG(pattern_tau,0,tail_t-tail_start_time,tail_bin_l);
 
     % Struckture and Fluorophore name
-    names = {'SYT1', 'GFAP'; 'Cy2', 'Oregon Green 488'};
+    names = {'tubulin', 'actin'; 'AF 647', 'JF 646'};
 
-    lt_short_name   = compose('%s lt short %0.1f ns', ISM_name, pattern_tau(1)); %1.37
-    lt_long_name    = compose('%s lt long %0.1f ns', ISM_name, pattern_tau(2)); % 3.0
+    lt_short_name   = compose('%s lt short PIRL %0.1f ns', ISM_name, pattern_tau(1)); %1.37
+    lt_long_name    = compose('%s lt long PIRL %0.1f ns', ISM_name, pattern_tau(2)); % 3.0
 
     shot_title = append(names{1,1}, ': ', names{2,1});
     long_title = append(names{1,2}, ': ', names{2,2});
@@ -337,11 +358,13 @@ if options.d_lifetime
     [lt_amp_img] = get_bi_lifetime(ISM_img,ISM_lin,im_tcspc = im_tcspc, ...
         tail_t = tail_t, tail_bin = tail_bin_l, tail_start_time = tail_start_time, ...
         tcspc_t = tcspc_t, pattern = pattern, pattern_tau = pattern_tau, ...
-        name = names, fname = ISM_name);
+        name = names, fname = ISM_name, ana_plt = options.add_plt);
     
     %plot individual strucktures
-    img_plot(lt_amp_img(:,:,1), c_blue, lt_short_name{1}, shot_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
-    img_plot(lt_amp_img(:,:,2), c_green, lt_long_name{1}, long_title, 4, IM_R, ISM_binning, reso_line_ISM, 0, 1);
+    img_plot(lt_amp_img(:,:,1), c_red, lt_short_name{1}, shot_title, 4, ...
+        ISM_R, options.ISM_rio, options.reso_line_ISM, 0, 1, r, r_ax);
+    img_plot(lt_amp_img(:,:,2), c_green, lt_long_name{1}, long_title, 4, ...
+        ISM_R, options.ISM_rio, options.reso_line_ISM, 0, 1, r, r_ax);
 
     %merge color plots
     merge_two_lt(lt_amp_img, names, LT_name, pattern_tau, IM_R);

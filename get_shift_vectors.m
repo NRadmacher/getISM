@@ -45,6 +45,10 @@ fname = 'D:\PHD\Data\2022\220513\tetra_beads_100nm_003.ptu';
 fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230424_ISM_STORM\STORM_test_gatta_quant_beadsR_50nm_27p9_pix_3.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230418_ISM_STORM\beads_calibration_PSF_200mm_laser_off6.ptu';
 
+%MITE Setup autofocus
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.ptu';
+dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
+
 tmp_name        = strsplit(fname, '\');
 date            = tmp_name{end-1};
 img_name        = tmp_name{end};
@@ -116,12 +120,8 @@ for pixl=1:n_pixl
 end
 disp("conversion to imges done")
 
-shift_x_pc = zeros(n_pixl,1);
-shift_y_pc = zeros(n_pixl,1);
-
 shift_x_ic = zeros(n_pixl,1);
 shift_y_ic = zeros(n_pixl,1);
-
 % x is fist coordinat and y second 
 
 if im_res < 0.03
@@ -179,8 +179,6 @@ exportgraphics(ax, file_name,'Resolution',600)
 
 inner = mean([norm(sv_ic(17,:)), norm(sv_ic(16,:)), norm(sv_ic(11,:)), norm(sv_ic(7,:)), norm(sv_ic(8,:)), norm(sv_ic(13,:))]);
 disp(inner)
-[pix_count,~] = histcounts(im_chan, n_pixl);
-% hex_plot(pix_count, hot);
 %% save 
 shift_vector = sv_ic.';
 save(save_name, 'shift_vector');
