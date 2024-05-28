@@ -2,9 +2,15 @@ function [dc, bin_dc] = get_DC(fname,plt)
 % Dark Count for PIIT SPAD-Array
 
 % n_pixl = 32;
-[im_chan,im_tcspc,~,~,~, head] = read_ISM(fname);
+% [im_chan,im_tcspc,~,~,~, head] = read_ISM(fname);
+[~, im_tcspc, ~, ~, im_chan, head] = ScanRead(fname);
 
-if(sum(head.HWInpChan_Enabled,"all") > 23)
+
+if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
+    n_pixl = 23;
+    title_name = 'SPAD-Array Darkcount';
+    tot_pix_time = head.ImgHdr_TimePerPixel * head.ImgHdr_PixX * head.ImgHdr_PixY * head.ImgHdr_MaxFrames / 1e3;
+elseif(sum(head.HWInpChan_Enabled,"all") > 23)
     n_pixl = 32;
     title_name = 'MPMT Darkcount';
 %     time spend on all pixels
@@ -15,13 +21,8 @@ else
     tot_pix_time = head.ImgHdr_PixelTime * head.ImgHdr_PixNum;
 end
 
-if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
-    n_pixl = 23;
-    title_name = 'SPAD-Array Darkcount';
-    tot_pix_time = head.ImgHdr_TimePerPixel * head.ImgHdr_PixX * head.ImgHdr_PixY * head.ImgHdr_MaxFrames / 1e3;
-end
-
 [dc,~] = histcounts(im_chan, n_pixl);
+dc = flip(dc);
 %count / time in sec
 [~,ind] = max(dc);
 % dc(ind) = 0;
@@ -58,7 +59,7 @@ if(plt)
     set(ax,'YScale', 'log', 'FontSize',13,'FontWeight','bold', 'LineWidth',1)
     grid(ax,"on")
     ylim(ax,[10^(floor(log10(min(dc(:))))) 10^(ceil(log10(max(dc(:)))))])
-    %ylim(ax,[1 10^(ceil(log10(max(dc(:)))))])
+    ylim(ax,[1 10^(ceil(log10(max(dc(:)))))])
 
     file_name = append(img_name,'_bar.png');
     exportgraphics(ax, file_name,'Resolution',600)
@@ -75,7 +76,7 @@ if(plt)
     title(title_name)
     grid(ax,"on")
     set(ax,'YScale', 'log', 'FontSize',13,'FontWeight','bold', 'LineWidth',1)
-
+    ylim(ax,[10 10^(ceil(log10(max(dc(:)))))])
     file_name = append(img_name,'_per.png');
     exportgraphics(ax, file_name,'Resolution',600)
     

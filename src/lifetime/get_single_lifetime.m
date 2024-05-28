@@ -31,7 +31,7 @@ img_size    = size(img);
 lt          = zeros(n_pixel, numel(options.tail_t));
 n_events    = numel(lin);
 
-h = waitbar(0,'binning');
+h = waitbar(0,'extracting TCSPC from image');
 %find all photons in one ISM pixel, by seaching in an interval of max count
 %lengh + 1 
 lower = 1;
@@ -63,7 +63,7 @@ for i = 1:n_pixel
    end
 end
 close(h);
-fprintf('lifetime pattern matching \n');
+fprintf('Lifetime pattern matching ... ');
 
 %tail fit via pattern matching
 [lt_img,~]  = lt_patternMatching(lt, options.tail_t-options.tail_start_time,...
@@ -71,6 +71,7 @@ fprintf('lifetime pattern matching \n');
 
 %fit lin index to 2d array
 lt_img  = reshape(lt_img, img_size);
+fprintf('Done!\n')
 
 if(options.ana_plt)
     % Normalised monoexponetial decay with background

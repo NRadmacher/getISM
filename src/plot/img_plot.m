@@ -1,4 +1,4 @@
-function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, roi, reso_line, reso, save, f, f_ax)
+function img_plot(img, c_map, name, title_n, sb_lenght, IM_R, roi, reso_line, reso, save_file, f, f_ax)
 %IMG_PLOT plot 2D image with color bar and scale and save to dir
 
 if roi == 0
@@ -8,7 +8,7 @@ end
 img = img( roi(1,1):roi(2,1), roi(1,2) : roi(2,2),1:end);
 
 %cut artefacts at edges
-% img = img(3:end-3,3:end-3);
+img = img(3:end-3,3:end-3);
 
 h = figure;
 ax = axes(h);
@@ -52,13 +52,13 @@ if reso
     yb2 = reso_line(2,2);
     
     %horizontal limits for intensity line
-    xb1 = xb1 - +1;
-    xb2 = xb2 - +1;
+%     xb1 = xb1 - +1;
+%     xb2 = xb2 - +1;
     dxb = xb2 - xb1;
     
     %vertical limits of intensity line
-    yb1 = yb1 - +1;
-    yb2 = yb2 - +1;
+%     yb1 = yb1 - +1;
+%     yb2 = yb2 - +1;
     dyb = yb2 - yb1;
     
     %finde coordinats along intensity line
@@ -85,6 +85,8 @@ if reso
     bead_sum = bead_sum./max(bead_sum);
     fitt = fit(r_bead.', bead_sum.', 'gauss1');
 
+    m = fitt.b1;
+    diff = 0.5 - m;
     sig = fitt.c1/sqrt(2);
     ci = confint(fitt,0.682);
     sig_err = abs( sig - max(ci(:,3))/sqrt(2) );
@@ -99,16 +101,16 @@ if reso
     fwhm_err = round(fwhm_err, sig_deci);
     two_sig = round(two_sig, sig_deci);
 
-    fit_stg = sprintf('resolutio: %g \x00B1 %g nm', two_sig*1000, fwhm_err*1000);
+    fit_stg = sprintf('resolution: %g \x00B1 %g nm', two_sig*1000, fwhm_err*1000);
     fprintf(append(name, ' ', fit_stg, '\n'));
-
+    
     r = f;
     axes(f_ax)
     hold on
-    p = plot(r_bead, bead_sum, 'x', 'DisplayName', title_n);
+    p = plot(r_bead+diff, bead_sum, 'x', 'DisplayName', title_n);
     xx = linspace(min(r_bead), max(r_bead), 1000);
     yy = feval(fitt, xx);
-    plot(xx, yy,'Color', p.Color)
+    plot(xx+diff, yy,'Color', p.Color)
     set(findall(r,'-property','FontSize'),'FontSize',17)
     set(findall(r,'-property', 'MarkerSize'), 'MarkerSize', 12)
     set(findall(r,'-property','LineWidth'),'LineWidth',1.5)
@@ -118,9 +120,12 @@ if reso
     line(ax,[xb1,xb2],[yb1,yb2],'Color','r', 'LineWidth', 2);
 end
 
-if save
+if save_file
     file_name = append(name,'.png');
     exportgraphics(ax, file_name,'Resolution',600)
+    
+%     file_name = append(name,'.mat');
+%     save(file_name,'img');
 
     spath = append(pwd,'\',name, '.tif');
     if exist(spath, 'file')==2

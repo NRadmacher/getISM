@@ -96,7 +96,7 @@ for i = 1:n_pixel
    ind      = find(lin(lower:upper) == i);
    if ~isempty(ind)
        [count, ~]   = histcounts(tcspc(lower + ind-1), options.tcspc_t);
-       lt_amp(i,:) = lsqnonneg(options.pattern, count.');
+       lt_amp(i,:) = lsqnonneg(options.pattern, count.');%PIRLSnonneg(options.pattern, count.')
        % set new upper edge to lower plus interval length
        upper    = min(lower + ind(end) + interval, n_events);
        % set lower edge to last found puls 1

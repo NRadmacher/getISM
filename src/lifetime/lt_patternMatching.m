@@ -19,9 +19,9 @@ pfun_monoexpBG  = @(tau,b) b./numel(tcspc_t(:))+(1-b).*pfun_monoexp(tau)./sum(pf
 %% Calculate patterns
 
 % define grid
-grid_lts = linspace(0.01,max_lt,500); % lifetime values
+grid_lts = linspace(0.01,max_lt,250); % lifetime values
 % grid_lts = [1.4, 2.4, 3];
-grid_bs  = linspace(0.0,0.6,60);  % background values
+grid_bs  = linspace(0.0,0.6,30);  % background values
 
 % get all combinations
 [grid_ltmat,grid_bmat] = meshgrid(grid_lts,grid_bs);

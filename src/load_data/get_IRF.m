@@ -11,14 +11,14 @@ end
 
 [im_chan,im_tcspc,~,head] = read_FCS(fname);
 
-im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
+% im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
 
 bin_factor = 1;
 
-if(sum(head.HWInpChan_Enabled,"all") > 23)
+if(nnz(head.TTResult_InputRate) > 23)
     title_name = 'MPMT irf';
 else
-    title_name = 'SPAD-Array irf';
+    title_name = 'SPAD-Array IRF';
 end
 
 %% find fwhm and max
@@ -59,7 +59,7 @@ if(plt)
     grid(ax, 'on')
     xlabel(sprintf('time [ns]'));
     ylabel(sprintf('count'));
-    xlim([0 10])
+    xlim([3 11])
     title(title_name)
     set(ax, 'FontSize', 13, 'FontWeight', 'bold', 'YScale', 'log', ...
         'Box', 'on', 'LineWidth', 1)

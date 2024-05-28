@@ -11,7 +11,7 @@ xl = 1:255/7:256;%like linespace but stepsize
 yl = [[0 0 0]; [0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]; [1 0 1]];
 lambda   = 1:256;
 spectrum = interp1(xl, yl, lambda);
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230615_ISM_STORM\neurons_4pfa_psd95_syt1_alexa647_atto655_PBS_power6p5_OD3_roi1_3.ptu';
+fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\cos7_tub_actin_alexa647_jf646_50mM_MEA_pbs_1p9mW_OD3_roi2_3.ptu';
 dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230418_ISM_STORM\beads_calibration_PSF_200mm_laser_off6.ptu';
 
 tmp_name = strsplit(fname, '\');
@@ -45,6 +45,9 @@ s_pixl_y    = head.ImgHdr_PixY;
 s_pixl      = s_pixl_x * s_pixl_y;
 s_size      = [s_pixl_x s_pixl_y];
 
+%scan resolution step per pixel in µm
+IM_R = head.ImgHdr_PixResol;
+
 %% ISM reasigment
 disp("ISM reasigment")
 
@@ -56,8 +59,8 @@ sv = sv_file.shift_vector;
 shift_x     = sv(1, im_pix+1).';
 shift_y     = sv(2, im_pix+1).';
 
-ISM_posx    = im_posx + shift_x;
-ISM_posy    = im_posy + shift_y;
+ISM_posx    = im_posx + shift_x.*(0.05/IM_R);
+ISM_posy    = im_posy + shift_y.*(0.05/IM_R);
 
 %%
 

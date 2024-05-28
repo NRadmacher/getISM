@@ -1,4 +1,4 @@
-function [eid, psf] = get_psf(rhofield, pix)
+function [eid, psf] = get_psf(rhofield, pix, over)
 %% PSF calculation
 NA = 1.49;
 lamex = 0.64; % excitation wavelength in mum
@@ -17,7 +17,7 @@ n1 = n0;
 d0 = [];
 d = 1;
 d1 = [];
-over =  inf; % diffraction-limited focusing
+% over =  inf; % diffraction-limited focusing
 focpos = 0; % focusing on surface
 
 exc = GaussExc(rhofield, zfield, NA, fd, n0, n, n1, d0, d, d1, lamex, over, focpos);
