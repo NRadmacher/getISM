@@ -23,7 +23,8 @@
 
 # Matlab fits
 *.sfit
-*_shift_vectors.m
+SPAD_shift*.m
+MPMT_shift*.m
 
 # Generated helpsearch folders
 helpsearch*/
