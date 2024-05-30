@@ -25,6 +25,7 @@
 *.sfit
 SPAD_shift*.m
 MPMT_shift*.m
+shift_vector.m
 
 # Generated helpsearch folders
 helpsearch*/
