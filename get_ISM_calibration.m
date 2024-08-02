@@ -1,13 +1,18 @@
 %claculate ISM shift Vercores and PSF
 
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.ptu';
+fname = 'W:\Niels\Messungen_Daten\240726_ism\data.sptw\gattaBeadsRed_8.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
 % 
-fname = 'W:\Niels\Messungen_Daten\240521_ISM_aligment\cali.sptw\garraBeadsR_9.ptu';
-dcname = 'W:\Niels\Messungen_Daten\231206_ISMcali\data.sptw\dc_4.ptu';
+% fname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\gattaBeadsR_49.ptu';
+% dcname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\dcFastFrameRate_1.ptu';
 
 tmp_name        = strsplit(fname, '\');
-folder_name     = tmp_name{end-1};
+if contains(tmp_name{end-1},".")
+    folder_name     = tmp_name{end-2};
+else
+    folder_name     = tmp_name{end-1};
+end
+
 
 %read ISM data from .ptu file
 % [~,~,im_posy,im_posx,~,head] = read_ISM(fname);

@@ -46,16 +46,16 @@ options.save_image  = 1;
 options.plot_reso   = 0;
 
 %% PTU files with data, DC, IRF
-fname = 'W:\Daniel\2023\2024-05-23_testing_defocused_ISM\TDI_glass.sptw\PDI_PBMA_glass_circ_19.ptu';
-dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
+fname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\gattaBeadsR_49.ptu';
+dcname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\dcFastFrameRate_1.ptu';
 irfname = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
 
-files = dir('W:\Niels\Messungen_Daten\240430_ISM_aligment\data.sptw\zmw_*.ptu');
+files = dir('W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\gattaBeadsR_*.ptu');
 
 %% run
 get_ISM(fname, dcname, irfname, options);
 
-% for i = 2:size(files,1)
+% for i = 1:size(files,1)
 %     name = append(files(i).folder,'\', files(i).name);
 %     get_ISM(name, dcname, irfname, options);
 %     close all

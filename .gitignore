@@ -26,6 +26,7 @@
 SPAD_shift*.m
 MPMT_shift*.m
 shift_vector.m
+ismCallibration*.mat
 
 # Generated helpsearch folders
 helpsearch*/

@@ -1,7 +1,13 @@
 function [shiftVector, save_name] = getShiftVectors(fname, dcname)
 
 tmp_name        = strsplit(fname, '\');
-date            = tmp_name{end-1};
+
+if contains(tmp_name{end-1},".")
+    date     = tmp_name{end-2};
+else
+    date     = tmp_name{end-1};
+end
+% date            = tmp_name{end-1};
 img_name        = tmp_name{end};
 img_name        = strsplit(img_name, '.');
 img_name        = img_name{end-1};
@@ -126,10 +132,10 @@ XL = get(ax, 'XLim');
 xl = XL(2) - XL(1);
 textPosX = xc.*2+(0.025*xl);
 textPosY =  yc.*2+(0.03*xl);
-% if n_pixl == 23
-%     textPosX(5) = -0.025*xl;
-%     textPosY(5) = -0.03*xl;
-% end
+if n_pixl == 23
+    textPosX(5) = -0.025*xl;
+    textPosY(5) = -0.03*xl;
+end
 text(textPosX, textPosY, txt)
 grid on
 box on
@@ -142,7 +148,7 @@ xlim( [-limits, limits] );
 set(ax,'YTick',get(ax,'XTick'));
 title(append(title_name,' image correlation'), 'FontSize', 15)
 name = append(img_name, '_sv');
-file_name = append(name,'.png');
+file_name = append(name,'.pdf');
 exportgraphics(ax, file_name,'Resolution',600)
 
 shiftVector = sv_ic.';
