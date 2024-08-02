@@ -41,13 +41,13 @@ im_res = head.ImgHdr_PixResol;
 if(sum(head.HWInpChan_Enabled) > 23)
     n_pixl = 32;
     title_name = 'MPMT shift vectors';
-    save_name = 'MPMT_shift_vectors.m';
+    save_name = 'MPMT_shift_vectors';
     pix_time = head.ImgHdr_PixelTime;
     i = 9;
 else
     n_pixl = 23;
     title_name = 'shift vectors';
-    save_name = 'SPAD_shift_vectors.m';
+    save_name = 'SPAD_shift_vectors';
 %     im_chan = im_chan-9;
     pix_time = head.ImgHdr_PixelTime;
     i = 12;
@@ -56,7 +56,7 @@ end
 if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
     n_pixl = 23;
     title_name = 'shift vectors';
-    save_name = 'SPAD_shift_vectors_mite.m';
+    save_name = 'SPAD_shift_vectors_FlimBee';
     %timer per pixel in total
     pix_time = head.ImgHdr_MaxFrames * head.ImgHdr_TimePerPixel/1e3;
     i = 12;

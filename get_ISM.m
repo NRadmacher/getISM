@@ -1,9 +1,10 @@
-function get_ISM(fname, dcname, irfname, options)
+function get_ISM(fname, dcname, irfname, caliname, options)
 
 arguments
     fname char             
     dcname char           
-    irfname char          
+    irfname char
+    caliname char
     options (1,1) struct
 end
 %% Loadind data
@@ -39,7 +40,12 @@ c_map       = cmap_isoluminant75;
 
 %Image title and name from file name
 tmp_name        = strsplit(fname, '\');
-folder_name     = tmp_name{end-1};
+if contains(tmp_name{end-1},".")
+    ws_name         = strsplit(tmp_name{end-1},'.');
+    folder_name     = append(tmp_name{end-2},' ',ws_name{1});
+else
+    folder_name     = tmp_name{end-1};
+end
 date            = strsplit(folder_name, '_');
 date            = date{1};
 img_name        = tmp_name{end};
@@ -87,6 +93,12 @@ s_pixl_y    = head.ImgHdr_PixY;
 %scan resolution step per pixel in µm
 IM_R = head.ImgHdr_PixResol;
 
+%shift vectors from file negativ sign is already included
+calib = open(caliname);
+sv = calib.shiftVector;
+n_pixl = size(sv,2);
+
+
 %ISM Binning UGO[1.02, 1.018] PQ[1.04] UGO220302[1.01] 20nm[1.0075] g4mix
 %[1.01/1.0075]pmt
 ISM_binning = options.ISM_binning;
@@ -94,21 +106,12 @@ ISM_binning = options.ISM_binning;
 %temporal resolution of TCSPC in seconds
 time_R = mean(head.MeasDesc_Resolution);
 
-%number of pixels of the detector
-if(sum(head.HWInpChan_Enabled) > 23)
-    n_pixl = 32;
-    pix_time = head.ImgHdr_TimePerPixel/1e3;
-else
-    n_pixl = 23;
-    %need fix for switch box
-%     im_chan = im_chan - 9;
-    pix_time = head.ImgHdr_TimePerPixel/1e3;
-end
 
 if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
-    n_pixl = 23;
     %timer per pixel in total in seconds
     pix_time = head.ImgHdr_MaxFrames * head.ImgHdr_TimePerPixel/1e3;
+else
+    pix_time = head.ImgHdr_TimePerPixel/1e3;
 end
 
 max_bin = 1200;   
@@ -205,25 +208,11 @@ end
 %% ISM reasigment
 if options.ISM
     fprintf('ISM reasigment ... ');
-    
-    %shift vectors from file negativ sign is already included
-    if n_pixl == 23    
-        if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
-            sv_file_name = 'SPAD_shift_vectors_mite.m';
-        end
-    else
-        sv_file_name = 'MPMT_shift_vectors.m';
-    end
-    
-    calib = open('ismCallibration231206_ISMcali.mat');
-    
-    % sv_file = matfile(sv_file_name);
-    % sv = (sv_file.shift_vector);
-    sv = calib.shiftVector;
+
     shift_x     = sv(1, im_chan+1).';
     shift_y     = sv(2, im_chan+1).';
     
-    [optBinning] = getISMbinning(s_pixl_y,sv, 5);
+%     [optBinning] = getISMbinning(s_pixl_y,sv, 5);
     
     ISM_binning = 1;
     % ISM_binning = options.ISM_binning;
@@ -269,8 +258,8 @@ if options.frw
     %jörg PSF fit
 %     [over, int] = NielsPSFFit(sum_img_dc);
     %calculate Fourier-reweighted ISM image
-    [W_ISM_img1, t_psf] = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R, calib.over, calib.psf);
-    
+%     [W_ISM_img1, t_psf] = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R, calib.over, calib.psf);
+    W_ISM_img1 = ISM_frw(ISM_img,calib.psf);
     %plot and save fr ISM
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
         options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_frw, ...
