@@ -50,7 +50,7 @@ calibration.dc = dc;
 [sum_img, ~, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
 
-[over, int, im, xx, yy] = ismPSFFit(sum_img);
+[over, int, im, xx, yy] = ismPSFFit(sum_img,head.ImgHdr_PixResol);
 
 calibration.psf     = int;
 calibration.over    = over;
