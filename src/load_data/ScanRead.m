@@ -1,6 +1,16 @@
 function [im_time, im_tcspc, im_posx, im_posy, im_chan, head] = ScanRead(name)
     head  = PTU_Read_Head(name);
-        
+    
+    im_time  = [];
+    im_tcspc = [];
+    im_posx  = [];
+    im_posy  = [];
+    im_chan  = [];
+    if head.ImgHdr_Dimensions == 1
+
+        [~, im_tcspc, im_chan, ~, ~, ~] = PTU_Read(name, head.TNTnPhoton, head);
+        return
+    end
     nx     = head.ImgHdr_PixX;
     ny     = head.ImgHdr_PixY;
     

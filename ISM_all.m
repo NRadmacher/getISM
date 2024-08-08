@@ -30,9 +30,9 @@ options.ISM_rio     = 0;
 
 options.sb_lenght   = 1;
 
-options.reso_line_conf  = [[84 84]; [24 74]];
-options.reso_line_ISM   = [[82 82]; [24 74]];
-options.reso_line_frw   = [[82 82]; [24 74]];
+options.reso_line_conf  = [[118 118]; [144 184]];
+options.reso_line_ISM   = [[120 120]; [144 184]];
+options.reso_line_frw   = [[120 120]; [144 184]];
 
 options.lt_range = [1.5 1.8];
 
@@ -43,21 +43,21 @@ options.sofi        = 0;
 
 options.add_plt     = 0;
 options.save_image  = 1;
-options.plot_reso   = 0;
+options.plot_reso   = 1;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Niels\Messungen_Daten\240726_ism\data.sptw\gattaBeadsRed_8.ptu';
-dcname      = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\dcFastFrameRate_1.ptu';
+fname       = 'W:\Niels\Messungen_Daten\240807_ism\lifetime.sptw\gattaBeadsRed_6.ptu';
+dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
-caliname    = 'ismCallibration240726_ism.mat';
+caliname    = 'ismCallibration240807_ism.mat';
 
-files       = dir('W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\gattaBeadsR_*.ptu');
+files       = dir('W:\Niels\Messungen_Daten\240801_ism\exAhi.sptw\*.ptu');
 
 %% run
 get_ISM(fname, dcname, irfname, caliname, options);
 
 % for i = 1:size(files,1)
 %     name = append(files(i).folder,'\', files(i).name);
-%     get_ISM(name, dcname, irfname, options);
+%     get_ISM(name, dcname, irfname,caliname, options);
 %     close all
 % end

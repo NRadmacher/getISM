@@ -9,7 +9,11 @@ function [dc, bin_dc] = get_DC(fname,plt)
 if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
     n_pixl = 23;
     title_name = 'SPAD-Array Darkcount';
-    tot_pix_time = head.ImgHdr_TimePerPixel * head.ImgHdr_PixX * head.ImgHdr_PixY * head.ImgHdr_MaxFrames / 1e3;
+    if head.TNTmeasDim == 1
+        tot_pix_time = head.MeasDesc_AcquisitionTime / 1e3;
+    else
+        tot_pix_time = head.ImgHdr_TimePerPixel * head.ImgHdr_PixX * head.ImgHdr_PixY * head.ImgHdr_MaxFrames / 1e3;
+    end
 elseif(sum(head.HWInpChan_Enabled,"all") > 23)
     n_pixl = 32;
     title_name = 'MPMT Darkcount';
@@ -24,15 +28,14 @@ end
 [dc,~] = histcounts(im_chan, n_pixl);
 dc = flip(dc);
 %count / time in sec
-[~,ind] = max(dc);
-% dc(ind) = 0;
 dc = dc./(tot_pix_time);
 mean_dc = median(dc);
+max_bin = ceil(1/(head.TNTsyncRate*head.TNTtcspsBinSize));
 % tcsps dc
-bin_dc = zeros(n_pixl,head.max_bin);
+bin_dc = zeros(n_pixl,max_bin);
 for i = 1:n_pixl
    tcspc = im_tcspc(im_chan == i-1);
-   [bin_dc(i,:),~] = histcounts(tcspc, 1: head.max_bin+1);
+   [bin_dc(i,:),~] = histcounts(tcspc, 1: max_bin+1);
 end
 
 %count / time in sec

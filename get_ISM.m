@@ -133,7 +133,7 @@ tail_end = max_bin - 20;
 [tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(tail_start, tail_end, time_R, bin_factor);
 
 % Max Lifetime in ns
-max_lt = 4;
+max_lt = 8;
 
 % Normalised monoexponetial decay with background
 pfun_monoexp = @(tau,x,dt) dt(:).*exp(-x(:)./tau); 
@@ -141,14 +141,18 @@ pfun_monoexpBG = @(tau,b,x,dt)b./numel(x(:))+(1-b).*pfun_monoexp(tau,x,dt)./sum(
 
 hex_plot(histcounts(im_chan,n_pixl), hot);
 %% seperate frames
-% 
+
 % binning = 1;
 % binFrame = 500;
-% pix_time = 0;
+% binFrameStart = 696;
+% binFrameEnd = 2372;
+% % pix_time = 0;
 % 
 % sFrame = 1+(binFrame-1)*binning;
 % eFrame = binFrame*binning;
 % 
+% sFrame = binFrameStart*binning;
+% eFrame = binFrameEnd*binning;
 % 
 % sTime = sFrame * head.ImgHdr_FrameTime;
 % etime = eFrame * head.ImgHdr_FrameTime;
@@ -255,11 +259,9 @@ if options.frw
         FW_R = ISM_R / 2;
     end
     
-    %jörg PSF fit
-%     [over, int] = NielsPSFFit(sum_img_dc);
-    %calculate Fourier-reweighted ISM image
-%     [W_ISM_img1, t_psf] = f_reweighting( max(ISM_img - sum(dc) * ISM_pix_time, 0), FW_R, calib.over, calib.psf);
-    W_ISM_img1 = ISM_frw(ISM_img,calib.psf);
+    %eps
+    eps = 0.05;
+    W_ISM_img1 = ISM_frw(ISM_img,calib.psf,eps);
     %plot and save fr ISM
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
         options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_frw, ...
@@ -268,14 +270,14 @@ if options.frw
     if options.add_plt
         %iamge size 
         t_psf = calib.psf;
-        nx = -options.conf_rio(1,1)+options.conf_rio(2,1);
-        ny = -options.conf_rio(1,2)+options.conf_rio(2,2);
-        [Nx,Ny] = size(t_psf);
-        if Nx<nx || Ny<ny
-            nx = Nx;
-            ny = Ny;
-        end
-        t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
+%         nx = -options.conf_rio(1,1)+options.conf_rio(2,1);
+%         ny = -options.conf_rio(1,2)+options.conf_rio(2,2);
+%         [Nx,Ny] = size(t_psf);
+%         if Nx<nx || Ny<ny
+%             nx = Nx;
+%             ny = Ny;
+%         end
+%         t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
 
         img_plot(t_psf, hot, PSF_name, 'confocal PSF', ...
         0.5, IM_R, 0, [[17 17]; [16-10 16+10]], ...

@@ -1,6 +1,6 @@
 %claculate ISM shift Vercores and PSF
 
-fname = 'W:\Niels\Messungen_Daten\240726_ism\data.sptw\gattaBeadsRed_8.ptu';
+fname = 'W:\Niels\Messungen_Daten\240807_ism\lifetime.sptw\gattaBeadsRed_6.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
 % 
 % fname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\gattaBeadsR_49.ptu';
