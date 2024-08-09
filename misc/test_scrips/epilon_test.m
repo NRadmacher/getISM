@@ -1,6 +1,6 @@
 %% 
 clear
-% close all
+close all
 clc
 
 %% Loadind data
@@ -11,15 +11,18 @@ caliname    = 'ismCallibration240807_ism.mat';
 %nice colormap from TNT
 cmap = cmap_greenFireBlue;
 
-[~, ~, im_posx, im_posy, ~, head] = ScanRead(fname);
+[im_time, ~, im_posx, im_posy, im_chan, head] = ScanRead(fname);
 
 im_posx = double(im_posx);
 im_posy = double(im_posy);
 
 ind             = im_posy<=head.ImgHdr_PixY;
+im_time         = im_time(ind);
+im_chan         = im_chan(ind);
 im_posx         = im_posx(ind);
 im_posy         = im_posy(ind);
 im_posx         = im_posx * head.ImgHdr_PixX;
+im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 %% Parameters and magic numbers(please fix)
 
 %number of pixels in recorded image
@@ -37,18 +40,17 @@ binFrameStart = 800;
 binFrameEnd = 801;
 
 %time frame  of imags
-sFrame = binFrameStart*binning;
-eFrame = binFrameEnd*binning;
-sTime = sFrame * head.ImgHdr_FrameTime;
-etime = eFrame * head.ImgHdr_FrameTime;
-ind = im_time<etime & im_time>sTime;%9.5;
+sFrame  = binFrameStart*binning;
+eFrame  = binFrameEnd*binning;
+sTime   = sFrame * head.ImgHdr_FrameTime;
+etime   = eFrame * head.ImgHdr_FrameTime;
+ind     = im_time<etime & im_time>sTime;%9.5;
 
 %only use photons in the selected time frame
-im_tcspc        = im_tcspc(ind);
-im_chan         = im_chan(ind);
 im_posx         = im_posx(ind);
 im_posy         = im_posy(ind);
 im_time         = im_time(ind);
+im_chan         = im_chan(ind);
 %% ISM reasigment
 fprintf('ISM reasigment ... ');
 
@@ -99,6 +101,9 @@ handles.slider = uicontrol( 'Style','slider',...
 handles.Listener = addlistener(handles.slider,'Value','PostSet',...
     @(s,e) deconvolve(handles,ismImg,calib,cmap,cutPos));
 
+%contrast button
+handles.button = uicontrol('Style','pushbutton','String','Spot','Position',[505 0 40 20],'Callback',@(s,e) spot(handles));
+
 %drwa initial image
 colormap(cmap)
 imagesc(ax,handles.Image);
@@ -126,3 +131,10 @@ function deconvolve(handles, ISM_img,calib,cmap,cutPos)
     drawnow
 end
 
+function spot(handles)
+    sortedIntensities = sort(handles.Image(:));
+    minIdx = round(0.75*numel(sortedIntensities));
+    minval = sortedIntensities( minIdx );
+    maxval = sortedIntensities( end );
+    clim(handles.fig.CurrentAxes,[minval maxval])
+end

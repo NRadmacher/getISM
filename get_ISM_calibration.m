@@ -6,6 +6,15 @@ dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\g
 % fname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\gattaBeadsR_49.ptu';
 % dcname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\dcFastFrameRate_1.ptu';
 
+%% Microscope parameters for psf fit
+%numerical aperture
+NA = 1.40;
+%focal distance of objective [µm]
+fd = 1800;
+%excitation wavelenght [µm]
+lamex = 0.640;
+
+
 tmp_name        = strsplit(fname, '\');
 if contains(tmp_name{end-1},".")
     folder_name     = tmp_name{end-2};
@@ -50,10 +59,15 @@ calibration.dc = dc;
 [sum_img, ~, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
 
-[over, int, im, xx, yy] = ismPSFFit(sum_img,head.ImgHdr_PixResol);
+[over, int, im, xx, yy] = ismPSFFit(sum_img,...
+    head.ImgHdr_PixResol,NA,fd,lamex);
 
 calibration.psf     = int;
 calibration.over    = over;
+calibration.NA      = NA;
+calibration.fd      = fd;
+calibration.lamex   = lamex;
+calibration.PSFfunc = @PSF;
 %% generate shift Vectors
 
 [shiftVector, save_name] = getShiftVectors(fname, dcname);
