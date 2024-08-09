@@ -57,6 +57,12 @@ fprintf('ISM reasigment ... ');
 %shift vectors from file negativ sign is already included
 calib       = open(caliname);
 sv          = calib.shiftVector;
+if calib.pixSize == IM_R
+    psf = calib.psf;
+else
+    %calculate psf for current pixel size
+    psf = calib.PSFfunc(calib.NA,calib.fd,calib.lamex,IM_R,calib.over);
+end
 shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
 
@@ -99,7 +105,7 @@ handles.slider = uicontrol( 'Style','slider',...
 
 %action listener to update image after silder has changed
 handles.Listener = addlistener(handles.slider,'Value','PostSet',...
-    @(s,e) deconvolve(handles,ismImg,calib,cmap,cutPos));
+    @(s,e) deconvolve(handles,ismImg,psf,cmap,cutPos));
 
 %contrast button
 handles.button = uicontrol('Style','pushbutton','String','Spot','Position',[505 0 40 20],'Callback',@(s,e) spot(handles));
@@ -115,9 +121,9 @@ colorbar(ax)
 
 
 %% user functions
-function deconvolve(handles, ISM_img,calib,cmap,cutPos)
+function deconvolve(handles, ISM_img,psf,cmap,cutPos)
     slider_value = get(handles.slider,'Value');
-    image  = ISM_frw(ISM_img,calib.psf, slider_value);
+    image  = ISM_frw(ISM_img,psf,slider_value);
     image = imcrop(image,cutPos);
     handles.Image = image;
     imagesc(handles.Image);
