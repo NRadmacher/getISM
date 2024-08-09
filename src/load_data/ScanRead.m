@@ -43,12 +43,10 @@ function [im_time, im_tcspc, im_posx, im_posy, im_chan, head] = ScanRead(name)
     im_chan  = im_chan(ind);
     im_tcspc = im_tcspc(ind);
     im_posx  = im_posx(ind);
-    im_posy  = im_posy(ind);        
-    
+    im_posy  = im_posy(ind);            
     clear im_data;
         
-    % im_param contains some statistics of the scan
-    
+    % im_param contains some statistics of the scan 
     head.ImgHdr_FrameNum  = im_param(1);  % how many frames were scanned
     head.ImgHdr_LineNum   = im_param(2);  % how many lines were completed
     head.ImgHdr_PixNum    = im_param(3);  % how many pixels wer scanned

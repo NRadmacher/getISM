@@ -221,8 +221,8 @@ if options.ISM
     ISM_binning = 1;
     % ISM_binning = options.ISM_binning;
     %apply ISM reassigment vektor
-    ISM_posx    = im_posx + shift_x.*(0.05/IM_R);
-    ISM_posy    = im_posy + shift_y.*(0.05/IM_R);
+    ISM_posx    = im_posx + shift_x.*(calib.pixSize/IM_R);
+    ISM_posy    = im_posy + shift_y.*(calib.pixSize/IM_R);
     
     clear shift_y shift_x;
     fprintf('Done!\n');
