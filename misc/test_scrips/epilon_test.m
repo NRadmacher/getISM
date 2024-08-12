@@ -92,9 +92,9 @@ cutPos = rec.Position;
 %image with silder to adjust epsilon
 handles.Image = imcrop(ismImg,cutPos);
 handles.fig = f;
-max_eps = 0.8;
+max_eps = 0.5;
 min_eps = 0;
-minor_step = (max_eps-min_eps)/1000;
+minor_step = (max_eps-min_eps)/50;
 major_step = 10*minor_step;
 
 %position and values of slider

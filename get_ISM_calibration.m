@@ -2,13 +2,16 @@
 
 fname = 'W:\Niels\Messungen_Daten\240807_ism\lifetime.sptw\gattaBeadsRed_6.ptu';
 dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
-% 
+
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.ptu';
+dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
+
 % fname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\gattaBeadsR_49.ptu';
 % dcname = 'W:\Niels\Messungen_Daten\240612_ISM\cali.sptw\dcFastFrameRate_1.ptu';
 
 %% Microscope parameters for psf fit
 %numerical aperture
-NA = 1.40;
+NA = 1.49;
 %focal distance of objective [µm]
 fd = 1800;
 %excitation wavelenght [µm]
