@@ -20,7 +20,7 @@ x_pix = size(img,2);
 y1 = 0.05*y_pix;
 x1 = 0.05 * x_pix;
 x2 = y1 + sb_lenght/IM_R;
-txt = [num2str(sb_lenght), ' µm'];
+txt = [num2str(sb_lenght), ' Âµm'];
 txt_offest = 0.05 * y_pix;
 
 colormap(h,c_map)
