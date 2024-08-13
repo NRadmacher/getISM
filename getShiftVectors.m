@@ -132,10 +132,10 @@ XL = get(ax, 'XLim');
 xl = XL(2) - XL(1);
 textPosX = xc.*2+(0.025*xl);
 textPosY =  yc.*2+(0.03*xl);
-if n_pixl == 23
-    textPosX(5) = -0.025*xl;
-    textPosY(5) = -0.03*xl;
-end
+% if n_pixl == 23
+%     textPosX(5) = -0.025*xl;
+%     textPosY(5) = -0.03*xl;
+% end
 text(textPosX, textPosY, txt)
 grid on
 box on

@@ -15,7 +15,7 @@ options.t_lifetime  = 0;
 options.q_lifetime  = 0;
 
 %1.02
-options.ISM_binning = 1;%1.08;
+options.ISM_binning = 1.0125;%1.08;
 options.WF_binning = 1.062;
 options.ISM_sampling = 0;
 
@@ -28,13 +28,13 @@ options.conf_rio    = 0;
 options.wf_rio      = 0;
 options.ISM_rio     = 0;
 
-options.sb_lenght   = 1;
+options.sb_lenght   = 5;
 
 options.reso_line_conf  = [[118 118]; [144 184]];
 options.reso_line_ISM   = [[120 120]; [144 184]];
 options.reso_line_frw   = [[120 120]; [144 184]];
 
-options.lt_range = [1.5 1.8];
+options.lt_range = [0.1 5];
 
 options.ISM         = 1;
 options.wf          = 0;
@@ -43,10 +43,10 @@ options.sofi        = 0;
 
 options.add_plt     = 0;
 options.save_image  = 1;
-options.plot_reso   = 1;
+options.plot_reso   = 0;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Niels\Messungen_Daten\240807_ism\lifetime.sptw\gattaBeadsRed_6.ptu';
+fname       = 'W:\Niels\Messungen_Daten\240801_ism\exAhi.sptw\otoferlin_Star635p_gold_ODp8_1.ptu';
 dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
 caliname    = 'ismCallibration240807_ism.mat';

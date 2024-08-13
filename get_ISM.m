@@ -84,13 +84,13 @@ im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
 
 %get IRF to set tail for tailfit
 % [fwhm, indMax, ~, ~,irf_tcspc] = get_IRF(irfname, 0);
-%% Parameters and magic numbers(please fix) AND FIX NAMEN FÜR TCSPC
+%% Parameters and magic numbers(please fix) AND FIX NAMEN FÃœR TCSPC
 
 %number of pixels in recorded image
 s_pixl_x    = head.ImgHdr_PixX;
 s_pixl_y    = head.ImgHdr_PixY;
 
-%scan resolution step per pixel in µm
+%scan resolution step per pixel in Âµm
 IM_R = head.ImgHdr_PixResol;
 
 %shift vectors from file negativ sign is already included
@@ -216,10 +216,10 @@ if options.ISM
     shift_x     = sv(1, im_chan+1).';
     shift_y     = sv(2, im_chan+1).';
     
-%     [optBinning] = getISMbinning(s_pixl_y,sv, 5);
+%     [optBinning] = getISMbinning(s_pixl_y,sv, 24);
     
-    ISM_binning = 1;
-    % ISM_binning = options.ISM_binning;
+%     ISM_binning = 1;
+%     ISM_binning = options.ISM_binning;
     %apply ISM reassigment vektor
     ISM_posx    = im_posx + shift_x.*(calib.pixSize/IM_R);
     ISM_posy    = im_posy + shift_y.*(calib.pixSize/IM_R);

@@ -11,8 +11,9 @@ xl = 1:255/7:256;%like linespace but stepsize
 yl = [[0 0 0]; [0 0 1]; [0 1 1]; [0 1 0]; [1 1 0]; [1 0.65 0]; [1 0 0]; [1 0 1]];
 lambda   = 1:256;
 spectrum = interp1(xl, yl, lambda);
-fname   = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\cos7_tub_actin_alexa647_jf646_50mM_MEA_pbs_1p9mW_OD3_roi2_3.ptu';
-dcname  = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230418_ISM_STORM\beads_calibration_PSF_200mm_laser_off6.ptu';
+fname       = 'W:\Niels\Messungen_Daten\240801_ism\exAhi.sptw\otoferlin_Star635p_gold_ODp8_1.ptu';
+dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
+caliname    = 'ismCallibration240807_ism.mat';
 
 tmp_name = strsplit(fname, '\');
 date = tmp_name{end-1};
@@ -54,8 +55,10 @@ disp("ISM reasigment")
 % im_pix = im_pix - 9;
 
 %shift vectors from file negativ sign is already included
-sv_file = matfile('SPAD_shift_vectors_mite.m');
-sv = sv_file.shift_vector;
+%shift vectors from file negativ sign is already included
+calib = open(caliname);
+sv = calib.shiftVector;
+n_pixl = size(sv,2);
 shift_x     = sv(1, im_pix+1).';
 shift_y     = sv(2, im_pix+1).';
 
