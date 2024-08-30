@@ -13,10 +13,6 @@ img_name        = strsplit(img_name, '.');
 img_name        = img_name{end-1};
 img_name        = append(date,' ',img_name);
 
-% [im_chan,~,im_posy,im_posx,~, head] = read_ISM(fname);
-% 
-% [head, ~, im_chan, im_posy, im_posx, ~] = PTU_ScanRead(fname, 0);
-% 
 [~, ~, im_posx, im_posy, im_chan, head] = ScanRead(fname);
 
 im_posx = double(im_posx);
@@ -92,9 +88,9 @@ shift_y_ic = zeros(n_pixl,1);
 % x is fist coordinat and y second 
 
 if im_res < 0.03
-    wd = 14;
+    wd = 40;
 else
-    wd = 7;
+    wd = 20;
 end
 
 center = imgs{i};

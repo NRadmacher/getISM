@@ -5,8 +5,8 @@ clc
 
 %% Loadind data
 
-fname       = 'W:\Niels\Messungen_Daten\240806_ism\paint.sptw\MITO_p1aTTO550_AREA1_17.ptu';
-caliname    = 'ismCallibration240807_ism.mat';
+fname       = 'W:\Niels\Messungen_Daten\240828_ismAligmanet\lifetime.sptw\gattaBeadsRed_10.ptu';
+caliname    = 'ismCallibration240828_ismAligmanet.mat';
 
 %nice colormap from TNT
 cmap = cmap_greenFireBlue;
@@ -34,23 +34,23 @@ IM_R = head.ImgHdr_PixResol;
 
 %% seperate frames
 
-%select desierd frame binning
-binning = 20;
-binFrameStart = 800;
-binFrameEnd = 801;
-
-%time frame  of imags
-sFrame  = binFrameStart*binning;
-eFrame  = binFrameEnd*binning;
-sTime   = sFrame * head.ImgHdr_FrameTime;
-etime   = eFrame * head.ImgHdr_FrameTime;
-ind     = im_time<etime & im_time>sTime;%9.5;
-
-%only use photons in the selected time frame
-im_posx         = im_posx(ind);
-im_posy         = im_posy(ind);
-im_time         = im_time(ind);
-im_chan         = im_chan(ind);
+% %select desierd frame binning
+% binning = 20;
+% binFrameStart = 73;
+% binFrameEnd = 74;
+% 
+% %time frame  of imags
+% sFrame  = binFrameStart*binning;
+% eFrame  = binFrameEnd*binning;
+% sTime   = sFrame * head.ImgHdr_FrameTime;
+% etime   = eFrame * head.ImgHdr_FrameTime;
+% ind     = im_time<etime & im_time>sTime;%9.5;
+% 
+% %only use photons in the selected time frame
+% im_posx         = im_posx(ind);
+% im_posy         = im_posy(ind);
+% im_time         = im_time(ind);
+% im_chan         = im_chan(ind);
 %% ISM reasigment
 fprintf('ISM reasigment ... ');
 
@@ -92,7 +92,7 @@ cutPos = rec.Position;
 %image with silder to adjust epsilon
 handles.Image = imcrop(ismImg,cutPos);
 handles.fig = f;
-max_eps = 0.5;
+max_eps = 1;
 min_eps = 0;
 minor_step = (max_eps-min_eps)/50;
 major_step = 10*minor_step;

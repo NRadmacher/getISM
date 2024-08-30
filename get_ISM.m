@@ -121,7 +121,7 @@ max_bin = 1200;
 bin_factor = 1;
 
 % minimum numbers of photons to calculate lifetime
-lt_cut_off = 10;
+lt_cut_off = 100;
 
 % tcspc tail_start in tcspc bin number !!FIX NEEDED!!
 % tail_start = indMax + fwhm; diode [600/700,275], TiSa [250], SEPIA [1700]
@@ -259,9 +259,7 @@ if options.frw
         FW_R = ISM_R / 2;
     end
     
-    %eps
-    eps = 0.05;
-    W_ISM_img1 = ISM_frw(ISM_img,calib.psf,eps);
+    W_ISM_img1 = ISM_frw(ISM_img,calib.psf,options.eps);
     %plot and save fr ISM
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
         options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_frw, ...
