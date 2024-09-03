@@ -1,12 +1,14 @@
 %claculate ISM shift Vercores and PSF
 
-% fname = 'W:\Niels\Messungen_Daten\240426_THG_ISM\GaAs_edge_THG_008.ptu';
+% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_1.ptu';
 % dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
 
-% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.ptu';
-% dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
+% fname = 'W:\Niels\Messungen_Daten\240807_ism\lifetime.sptw\gattaBeadsRed_6.ptu';
+% fname = 'W:\Niels\Messungen_Daten\240823_ismAligment\lifetime.sptw\gattaBeadsRed_4.ptu';
+% fname = 'W:\Niels\Messungen_Daten\240828_ismAligment\lifetime.sptw\gattaBeadsRed_9.ptu';
+% fname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\gattaBeadsRed_7.ptu';
+fname = 'W:\Niels\Messungen_Daten\240902_ismAligment\lifetime.sptw\gattaBeadsRed_1.ptu';
 
-fname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\gattaBeadsRed_3.ptu';
 dcname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\dc_2.ptu';
 
 %% Microscope parameters for psf fit
@@ -72,6 +74,7 @@ calibration.NA      = NA;
 calibration.fd      = fd;
 calibration.lamex   = lamex;
 calibration.PSFfunc = @PSF;
+disp("PSF fit done!")
 %% generate shift Vectors
 
 [shiftVector, save_name] = getShiftVectors(fname, dcname);
@@ -82,7 +85,9 @@ calibration.svName      = save_name;
 calibration.fileName    = fname;
 calibration.dc          = dc;
 calibration.pixSize     = head.ImgHdr_PixResol;
+disp("shiftvectors calculated!")
+%% save calib file
 
 saveTo = append('ismCallibration', folder_name, '.mat');
-
 save(saveTo,"-struct", "calibration",'-v7.3')
+
