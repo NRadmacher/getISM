@@ -29,45 +29,45 @@ options.wf_rio      = 0;
 options.ISM_rio     = 0;
 
 options.sb_lenght   = 5;
-confx = 299;
-confy = 290;
+confx = 127;
+confy = 224;
 
-ismx = 214;
-ismy = 153;
+ismx = 131;
+ismy = 227;
 options.reso_line_conf  = [[confx confx]; [confy-20 confy+20]];
 options.reso_line_ISM   = [[ismx ismx]; [ismy-20 ismy+20]];
 options.reso_line_frw   = options.reso_line_ISM;%[[323 323]; [216 256]];
 
 options.lt_range = [0.1 5];
 
-options.ISM         = 0;
+options.ISM         = 1;
 options.wf          = 0;
-options.frw         = 0;
+options.frw         = 1;
 options.sofi        = 0;
 
-options.eps = 0.05;
+options.eps = 0.04;
 
 options.add_plt     = 0;
 options.save_image  = 1;
 options.plot_reso   = 1;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Niels\Messungen_Daten\240902_ismAligment\lifetime.sptw\gattaBeadsRed_1.ptu';
+fname       = 'W:\Niels\Messungen_Daten\240904_ismAligment\lifetime.sptw\gattaBeadsRed_NoPinHole_3.ptu';
 dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
-caliname    = 'ismCallibration240902_ismAligment.mat';
+caliname    = 'ismCallibration240904_ismAligment.mat';
 
-files       = dir('W:\Niels\Messungen_Daten\240903_ismAligment\lifetime.sptw\GroupMeas_2\atto655*.ptu');
+files       = dir('W:\Niels\Messungen_Daten\240903_ismAligment\lifetime.sptw\57p5mm_2\gattaBeadsRed*.ptu');
 
 %% run
-% get_ISM(fname, dcname, irfname, caliname, options);
+get_ISM(fname, dcname, irfname, caliname, options);
 
-for i = 2:size(files,1)
-    name = append(files(i).folder,'\', files(i).name);
-    try 
-        get_ISM(name, dcname, irfname,caliname, options);
-    catch error
-        disp(error)
-    end
-    close all
-end
+% for i = 1:size(files,1)
+%     name = append(files(i).folder,'\', files(i).name);
+%     try 
+%         get_ISM(name, dcname, irfname,caliname, options);
+%     catch error
+%         disp(error)
+%     end
+%     close all
+% end

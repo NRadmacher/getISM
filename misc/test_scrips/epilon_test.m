@@ -5,8 +5,8 @@ clc
 
 %% Loadind data
 
-fname       = 'W:\Niels\Messungen_Daten\240828_ismAligmanet\lifetime.sptw\gattaBeadsRed_10.ptu';
-caliname    = 'ismCallibration240828_ismAligmanet.mat';
+fname       = 'W:\Niels\Messungen_Daten\240904_ismAligment\lifetime.sptw\gattaBeadsRed_NoPinHole_3.ptu';
+caliname    = 'ismCallibration240904_ismAligment.mat';
 
 %nice colormap from TNT
 cmap = cmap_greenFireBlue;
@@ -92,9 +92,9 @@ cutPos = rec.Position;
 %image with silder to adjust epsilon
 handles.Image = imcrop(ismImg,cutPos);
 handles.fig = f;
-max_eps = 1;
+max_eps = 0.5;
 min_eps = 0;
-minor_step = (max_eps-min_eps)/50;
+minor_step = (max_eps-min_eps)/100;
 major_step = 10*minor_step;
 
 %position and values of slider

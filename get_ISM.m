@@ -288,7 +288,7 @@ if options.plot_reso
     set(r, 'Visible', 'on')
     grid(r_ax, 'on');
     box(r_ax, 'on');
-%     xlim(r_ax,[0.5 2]);
+    xlim(r_ax,[0 1]);
     lgd = legend(r_ax, 'confocal', '','ISM','','FRW ISM');
     lgd.Location = 'best';
     file_name = append(img_name,'_reso.pdf');

@@ -7,7 +7,7 @@
 % fname = 'W:\Niels\Messungen_Daten\240823_ismAligment\lifetime.sptw\gattaBeadsRed_4.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240828_ismAligment\lifetime.sptw\gattaBeadsRed_9.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\gattaBeadsRed_7.ptu';
-fname = 'W:\Niels\Messungen_Daten\240902_ismAligment\lifetime.sptw\gattaBeadsRed_1.ptu';
+fname = 'W:\Niels\Messungen_Daten\240904_ismAligment\lifetime.sptw\gattaBeadsRed_NoPinHole_3.ptu';
 
 dcname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\dc_2.ptu';
 

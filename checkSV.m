@@ -28,6 +28,8 @@ calib240823 = open("ismCallibration240823_ismAligment.mat");
 calib240828 = open("ismCallibration240828_ismAligment.mat");
 calib240830 = open("ismCallibration240830_ism.mat");
 calib240902 = open("ismCallibration240902_ismAligment.mat");
+calib240903 = open("ismCallibration240903_ismAligment.mat");
+calib240904 = open("ismCallibration240904_ismAligment.mat");
 
 norm230711 = vecnorm(calib230711.shiftVector,2,1).*calib230711.pixSize;
 norm240807 = vecnorm(calib240807.shiftVector,2,1).*calib240807.pixSize;
@@ -35,9 +37,11 @@ norm240823 = vecnorm(calib240823.shiftVector,2,1).*calib240823.pixSize;
 norm240828 = vecnorm(calib240828.shiftVector,2,1).*calib240828.pixSize;
 norm240830 = vecnorm(calib240830.shiftVector,2,1).*calib240830.pixSize;
 norm240902 = vecnorm(calib240902.shiftVector,2,1).*calib240902.pixSize;
+norm240903 = vecnorm(calib240903.shiftVector,2,1).*calib240903.pixSize;
+norm240904 = vecnorm(calib240904.shiftVector,2,1).*calib240904.pixSize;
 
-alpha = 1+708/640;
-alpha = 2;
+alpha = 1+(708/640)^-1;
+% alpha = 2;
 M = mean(dist(ind)./(alpha*norm230711(ind)),"omitnan");
 disp(M)
 M = mean(dist(ind)./(alpha*norm240807(ind)),"omitnan");
@@ -50,6 +54,9 @@ M = mean(dist(ind)./(alpha*norm240830(ind)),"omitnan");
 disp(M)
 M = mean(dist(ind)./(alpha*norm240902(ind)),"omitnan");
 disp(M)
-
+M = mean(dist(ind)./(alpha*norm240903(ind)),"omitnan");
+disp(M)
+M = mean(dist(ind)./(alpha*norm240904(ind)),"omitnan");
+disp(M)
 
 
