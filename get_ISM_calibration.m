@@ -7,17 +7,20 @@
 % fname = 'W:\Niels\Messungen_Daten\240823_ismAligment\lifetime.sptw\gattaBeadsRed_4.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240828_ismAligment\lifetime.sptw\gattaBeadsRed_9.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\gattaBeadsRed_7.ptu';
-fname = 'W:\Niels\Messungen_Daten\240904_ismAligment\lifetime.sptw\gattaBeadsRed_NoPinHole_3.ptu';
+fname = 'W:\Niels\Messungen_Daten\240911_ism\lifetime.sptw\GroupMeas_1\gattaBeadsRed_42_z0,75µm_1.ptu';
 
 dcname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\dc_2.ptu';
 
 %% Microscope parameters for psf fit
 %numerical aperture
-NA = 1.49;
-%focal distance of objective [µm]
+NA = 1.40;
+%focal distance of objective [µm] for Olympus = 180/M
 fd = 1800;
 %excitation wavelenght [µm]
 lamex = 0.640;
+
+%adjustment for shiftet back and forward strock
+pixShift = 0;
 
 %% Other parameters
 %total maginfication at array
@@ -64,6 +67,11 @@ calibration.dc = dc;
 
 [sum_img, ~, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
+
+if pixShift
+    shift_img = circshift(sum_img(1:2:end,:),-1,2);
+    sum_img(1:2:end,:) = shift_img;
+end
 
 [over, int, im, xx, yy] = ismPSFFit(sum_img,...
     head.ImgHdr_PixResol,NA,fd,lamex);

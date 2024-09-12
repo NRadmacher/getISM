@@ -62,7 +62,17 @@ LT_name         = append(img_name, ' lt');
 %read ISM data from .ptu file
 % [im_chan,im_tcspc,im_posy,im_posx,im_time,head] = read_ISM(fname);
 
-[im_time, im_tcspc, im_posx, im_posy, im_chan, head] = ScanRead(fname);
+try
+    [im_time, im_tcspc, im_posx, im_posy, im_chan, head] = ScanRead(fname);
+catch error
+    rethrow(error)
+end
+
+if isempty(im_time)||isempty(im_chan)||...
+        isempty(im_posy)||isempty(im_posx)||isempty(im_tcspc)
+    ME = MException('PTUread:nphotonerror','PTU file containd no photons');
+    throw(ME)
+end
 
 im_posx = double(im_posx);
 im_posy = double(im_posy);
@@ -171,11 +181,17 @@ hex_plot(histcounts(im_chan,n_pixl), hot);
 %generate confocal image
 [sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
+if options.pixShift
+    shift_img = circshift(sum_img(1:2:end,:),-1,2);
+    sum_img(1:2:end,:) = shift_img;
+end
+
+% totImage = zeros(s_pixl_x,s_pixl_y,3);
+% totImage(:,:,1) = sum_img;
 r = figure('Visible','off');
 r_ax = axes('Parent', r);
 
 %plot and save
-sum_img_dc = max(sum_img - sum(dc) * pix_time, 0);
 img_plot( sum_img, hot, colf_name, ...
     'confocal', options.sb_lenght, IM_R, options.conf_rio, options.reso_line_conf, ...
     options.plot_reso, options.save_image, r, r_ax);
@@ -240,6 +256,7 @@ if options.ISM
         ISM_pix_time = pix_time;
     end
     
+%     totImage(:,:,2) = ISM_img;
     %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
     %23 pixels, either the same pixel in the sampel or a shifted on. But always
     %23. Thus darkcount = sum(dc)
@@ -258,11 +275,18 @@ if options.frw
         %double the sampling points to get reweighting at twice the k-vectors
         FW_R = ISM_R / 2;
     end
+
+    if calib.pixSize ~= FW_R
+        
+    end
     
     W_ISM_img1 = ISM_frw(ISM_img,calib.psf,options.eps);
+
+%     totImage(:,:,3) = W_ISM_img1;
+
     %plot and save fr ISM
     img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
-        options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_frw, ...
+        options.sb_lenght, FW_R, options.ISM_rio, options.reso_line_frw, ...
         options.plot_reso, options.save_image, r, r_ax);
 
     if options.add_plt
@@ -282,6 +306,10 @@ if options.frw
         options.plot_reso, options.save_image, r, r_ax);
     end
 end
+
+%% all in one
+
+% TNTvisualizer(totImage, struct('title',img_name,'metadata',struct('pixelsize',IM_R,'pixelsize_unit',[char(181) 'm'])));
 %% Plot reso
 
 if options.plot_reso

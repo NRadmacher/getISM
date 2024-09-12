@@ -34,27 +34,31 @@ im_res = head.ImgHdr_PixResol;
 [dc, ~] = get_DC(dcname,0);
 
 %number of pixels of the detector
-if(sum(head.HWInpChan_Enabled) > 23)
-    n_pixl = 32;
-    title_name = 'MPMT shift vectors';
-    save_name = 'MPMT_shift_vectors';
-    pix_time = head.ImgHdr_PixelTime;
-    i = 9;
-else
-    n_pixl = 23;
+if isfield(head,'HWInpChan_Enabled')
+    if(sum(head.HWInpChan_Enabled) > 23)
+        n_pixl = 32;
+        title_name = 'MPMT shift vectors';
+        save_name = 'MPMT_shift_vectors';
+        i = 9;
+    else
+        n_pixl = 23;
+        title_name = 'shift vectors';
+        save_name = 'SPAD_shift_vectors';
+        i = 12;
+    end
+    pixShift = 0;
+elseif isfield(head,'HW_InpChannels')
+    n_pixl = head.HW_InpChannels;
     title_name = 'shift vectors';
-    save_name = 'SPAD_shift_vectors';
-%     im_chan = im_chan-9;
-    pix_time = head.ImgHdr_PixelTime;
+    save_name = 's23_shift_vectors';
+    pixShift = 1;
     i = 12;
+    
 end
-
 if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
     n_pixl = 23;
     title_name = 'shift vectors';
     save_name = 'SPAD_shift_vectors_FlimBee';
-    %timer per pixel in total
-    pix_time = head.ImgHdr_MaxFrames * head.ImgHdr_TimePerPixel/1e3;
     i = 12;
 end
 
@@ -76,8 +80,11 @@ for pixl=1:n_pixl
        im_y = im_posy(ind);
        
        img = img_ps(im_x, im_y, s_pixl_x, s_pixl_y, 1);
-%        img = max(img - dc(pixl) * pix_time, 0);
-       img = max(img -0, 0);
+       
+       if pixShift
+           shift_img = circshift(img(1:2:end,:),-1,2);
+           img(1:2:end,:) = shift_img;
+       end
        
        imgs{pixl} = img;
 end

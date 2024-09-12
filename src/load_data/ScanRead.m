@@ -1,6 +1,11 @@
 function [im_time, im_tcspc, im_posx, im_posy, im_chan, head] = ScanRead(name)
     head  = PTU_Read_Head(name);
     
+    if head.TNTnPhoton == 0
+        ME = MException('PTUread:nphoton','PTU file %s \ncontains no photons', name);
+        throw(ME)
+    end
+
     im_time  = [];
     im_tcspc = [];
     im_posx  = [];
