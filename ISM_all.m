@@ -49,12 +49,12 @@ options.eps = 0.08;
 
 options.add_plt     = 0;
 options.save_image  = 1;
-options.plot_reso   = 1;
+options.plot_reso   = 0;
 
 options.pixShift = 0;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Niels\Messungen_Daten\240927_ism\lifetime.sptw\GroupMeas_2\gattaBeadsRed_18_z0,80µm_1.ptu';
+fname       = 'W:\Florencia\Third Harmonic Project\06.11.24\beads_THG_006.ptu';
 dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
 caliname    = 'ismCallibration240927 lifetime GroupMeas_2 gattaBeadsRed_18_z0,80µm_1.mat';

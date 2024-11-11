@@ -48,7 +48,9 @@ datePat = digitsPattern(6);
 while isempty(date)
     if i == size(tmp_name,2)
         ME = MException('Filemane:nodate','file %s \ncontains no date', fname);
-        throw(ME)
+        date = {'000000'};
+        fprintf('Warning no date found in file name!\n')
+        break;
     end
     date = extract(tmp_name{end-i},datePat);
     i = i+1;
