@@ -40,21 +40,42 @@ c_map       = cmap_isoluminant75;
 
 %Image title and name from file name
 tmp_name        = strsplit(fname, '\');
-if contains(tmp_name{end-1},".")
-    ws_name         = strsplit(tmp_name{end-1},'.');
-    folder_name     = append(tmp_name{end-2},' ',ws_name{1});
-else
-    folder_name     = tmp_name{end-1};
+
+%find date in filepath
+i = 1;
+date = [];
+datePat = digitsPattern(6);
+while isempty(date)
+    if i == size(tmp_name,2)
+        ME = MException('Filemane:nodate','file %s \ncontains no date', fname);
+        throw(ME)
+    end
+    date = extract(tmp_name{end-i},datePat);
+    i = i+1;
 end
-date            = strsplit(folder_name, '_');
-date            = date{1};
+date = date{1};
+
+%check if file was recorded by Symphotime and add ws name to image name
+if contains(tmp_name{end-i+2},'.')
+    wsName  = strsplit(tmp_name{end-i+2},'.');
+    date    = append(date,' ',wsName{1});
+    %check if file is part of Group Measurment and add name of GM to image
+    %name
+    if (i-3) > 0
+        gmName  = tmp_name{end-i+3};
+        date    = append(date,' ',gmName);
+    end
+end
+
 img_name        = tmp_name{end};
 img_name        = strsplit(img_name, '.');
 img_name        = img_name{end-1};
+
 img_name        = append(date,' ',img_name);
+
 ISM_name        = append(img_name, ' ISM');
 ISM_fw_name     = append(img_name, ' ISM Fourier-reweighted');
-PSF_name         = append(img_name, ' psf');
+PSF_name        = append(img_name, ' psf');
 colf_name       = append(img_name, ' no ISM');
 wf_name         = append(img_name, '  WF');
 LT_name         = append(img_name, ' lt');
@@ -232,10 +253,10 @@ if options.ISM
     shift_x     = sv(1, im_chan+1).';
     shift_y     = sv(2, im_chan+1).';
     
-%     [optBinning] = getISMbinning(s_pixl_y,sv, 24);
+    [optBinning] = getISMbinning(s_pixl_y,sv, 24);
     
-%     ISM_binning = 1;
-%     ISM_binning = options.ISM_binning;
+    ISM_binning = 1;
+    ISM_R = IM_R / ISM_binning;
     %apply ISM reassigment vektor
     ISM_posx    = im_posx + shift_x.*(calib.pixSize/IM_R);
     ISM_posy    = im_posy + shift_y.*(calib.pixSize/IM_R);
@@ -270,17 +291,20 @@ end
 
 if options.frw
     if options.ISM_sampling
-        FW_R = ISM_R;
+        FW_R = ISM_R/2;
     else
-        %double the sampling points to get reweighting at twice the k-vectors
-        FW_R = ISM_R / 2;
+        FW_R = ISM_R;
     end
 
     if calib.pixSize ~= FW_R
-        
+        %calculate psf for current pixel size
+        PSF = calib.PSFfunc(calib.NA,calib.fd,calib.lamex,...
+            FW_R,calib.over);
+    else
+        PSF = calib.psf;
     end
     
-    W_ISM_img1 = ISM_frw(ISM_img,calib.psf,options.eps);
+    W_ISM_img1 = ISM_frw(ISM_img,PSF,options.eps);
 
 %     totImage(:,:,3) = W_ISM_img1;
 

@@ -1,19 +1,19 @@
 %claculate ISM shift Vercores and PSF
 
-% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_1.ptu';
-% dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
+fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.ptu';
+dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
 
 % fname = 'W:\Niels\Messungen_Daten\240807_ism\lifetime.sptw\gattaBeadsRed_6.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240823_ismAligment\lifetime.sptw\gattaBeadsRed_4.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240828_ismAligment\lifetime.sptw\gattaBeadsRed_9.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\gattaBeadsRed_7.ptu';
-fname = 'W:\Niels\Messungen_Daten\240911_ism\lifetime.sptw\GroupMeas_1\gattaBeadsRed_42_z0,75µm_1.ptu';
-
-dcname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\dc_2.ptu';
+% fname = 'W:\Niels\Messungen_Daten\240927_ism\lifetime.sptw\GroupMeas_2\gattaBeadsRed_18_z0,80µm_1.ptu';
+% 
+% dcname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\dc_2.ptu';
 
 %% Microscope parameters for psf fit
 %numerical aperture
-NA = 1.40;
+NA = 1.49;
 %focal distance of objective [µm] for Olympus = 180/M
 fd = 1800;
 %excitation wavelenght [µm]
@@ -28,11 +28,37 @@ M = 150;
 
 %% Load data
 tmp_name        = strsplit(fname, '\');
-if contains(tmp_name{end-1},".")
-    folder_name     = tmp_name{end-2};
-else
-    folder_name     = tmp_name{end-1};
+%find date in filepath
+i = 1;
+date = [];
+datePat = digitsPattern(6);
+while isempty(date)
+    if i == size(tmp_name,2)
+        ME = MException('Filemane:nodate','file %s \ncontains no date', fname);
+        throw(ME)
+    end
+    date = extract(tmp_name{end-i},datePat);
+    i = i+1;
 end
+date = date{1};
+
+%check if file was recorded by Symphotime and add ws name to image name
+if contains(tmp_name{end-i+2},'.')
+    wsName  = strsplit(tmp_name{end-i+2},'.');
+    date    = append(date,' ',wsName{1});
+    %check if file is part of Group Measurment and add name of GM to image
+    %name
+    if (i-3) > 0
+        gmName  = tmp_name{end-i+3};
+        date    = append(date,' ',gmName);
+    end
+end
+
+img_name        = tmp_name{end};
+img_name        = strsplit(img_name, '.');
+img_name        = img_name{end-1};
+
+img_name        = append(date,' ',img_name);
 
 %read ISM data from .ptu file
 [~, ~, im_posx, im_posy, ~, head] = ScanRead(fname);
@@ -96,6 +122,6 @@ calibration.pixSize     = head.ImgHdr_PixResol;
 disp("shiftvectors calculated!")
 %% save calib file
 
-saveTo = append('ismCallibration', folder_name, '.mat');
+saveTo = append('ismCallibration', img_name, '.mat');
 save(saveTo,"-struct", "calibration",'-v7.3')
 

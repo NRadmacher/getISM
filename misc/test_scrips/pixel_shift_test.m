@@ -5,7 +5,7 @@ clc
 
 %% Loadind data
 
-fname       = 'W:\Florencia\Third Harmonic Project\SHG\brain_SG_004.ptu';
+fname       = 'W:\Florencia\Third Harmonic Project\06.11.24\beads_THG_006.ptu';
 
 %nice colormap from TNT
 cmap = cmap_greenFireBlue;

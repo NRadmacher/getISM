@@ -41,6 +41,6 @@ optBinning = fminbnd(@ISMpixelShiftSTD,0.95,1.05, options);
 % 
 % [img, ~, ~] = img_ps(im_posx, im_posy, 1, n_pixl_y,optBinning);
 % figure 
-% plot(img(9:end-7))
+% plot(img(1:end))
 
 end

@@ -5,8 +5,8 @@ clc
 
 %% Loadind data
 
-fname       = 'W:\Niels\Messungen_Daten\240904_ismAligment\lifetime.sptw\gattaBeadsRed_NoPinHole_3.ptu';
-caliname    = 'ismCallibration240904_ismAligment.mat';
+fname       = 'W:\Niels\Messungen_Daten\240912_ism\lifetime.sptw\gattaBeadsRed_2.ptu';
+caliname    = 'ismCallibration240912_ism.mat';
 
 %nice colormap from TNT
 cmap = cmap_greenFireBlue;
@@ -73,8 +73,13 @@ ISM_posy    = im_posy + shift_y.*(calib.pixSize/IM_R);
 clear shift_y shift_x;
 fprintf('Done!\n');
 %% plot
+
+[optBinning] = getISMbinning(s_pixl_y,sv, 24);
+
+ISM_binning = optBinning;
+ISM_R = IM_R / ISM_binning;
 %get image from photon stream
-ismImg  = img_ps(ISM_posx,ISM_posy,s_pixl_x,s_pixl_y,1);
+ismImg  = img_ps(ISM_posx,ISM_posy,s_pixl_x,s_pixl_y,ISM_binning);
 
 f = figure;
 ax = axes(f);

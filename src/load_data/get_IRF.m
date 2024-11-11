@@ -7,11 +7,11 @@ end
 % fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\220204\irf_2ph_014.ptu';
 % fname = 'D:\PHD\Data\2022\220816\irf_ex470nm_004.ptu';
 % dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\210909\IRF_DC_001.ptu';
-% fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230130_pmt_irf\irf_pmt_011.ptu';
+% fname = 'D:\PHD\Data\2023\230130_pmt_irf\irf_pmt_011.ptu';
 
 [im_chan,im_tcspc,~,head] = read_FCS(fname);
 
-% im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
+im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
 
 bin_factor = 1;
 
@@ -59,7 +59,8 @@ if(plt)
     grid(ax, 'on')
     xlabel(sprintf('time [ns]'));
     ylabel(sprintf('count'));
-    xlim([3 11])
+    xlim([0 10])
+    ylim([1e0 2e5])
     title(title_name)
     set(ax, 'FontSize', 13, 'FontWeight', 'bold', 'YScale', 'log', ...
         'Box', 'on', 'LineWidth', 1)
