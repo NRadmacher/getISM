@@ -200,14 +200,15 @@ hex_plot(histcounts(im_chan,n_pixl), hot);
 % s_pixl_y = head.ImgHdr_LineNum;
 % s_pixl_x = head.ImgHdr_PixNum/head.ImgHdr_LineNum;
 
+%% Pixel shift
+if options.pixShift ~= 0
+    ind = mod(im_posy,2) == 0;
+    im_posx(ind) = im_posx(ind) + options.pixShift;
+end
+
 %% Confocal Image
 %generate confocal image
 [sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
-
-if options.pixShift ~= 0
-    shift_img = circshift(sum_img(1:2:end,:),options.pixShift,2);
-    sum_img(1:2:end,:) = shift_img;
-end
 
 % totImage = zeros(s_pixl_x,s_pixl_y,3);
 % totImage(:,:,1) = sum_img;

@@ -51,7 +51,7 @@ options.add_plt     = 0;
 options.save_image  = 1;
 options.plot_reso   = 0;
 
-options.pixShift = -1;
+options.pixShift = 1;
 
 %% PTU files with data, DC, IRF
 fname       = 'W:\Florencia\Third Harmonic Project\SHG\brain_SG_004.ptu';
