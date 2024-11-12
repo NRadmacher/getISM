@@ -1,4 +1,4 @@
-function get_th_shift_vectors()
+function sv_wf = get_th_shift_vectors()
 %GET_WF_SHIFT_VECTORS Summary of this function goes here
     
     %magnificatio
@@ -42,11 +42,9 @@ function get_th_shift_vectors()
     ylim( [-limits, limits] );
     xlim( [-limits, limits] );
     title('thoretical sv')
-    file_name = append('th_sv','.png');
-    exportgraphics(ax, file_name,'Resolution',600)
 
-    sv_wf = -1.*[det_x; det_y];
-
-    save('SPAD_shift_vectors_th.m', 'sv_wf');
-
+    sv_wf = -0.5.*[det_x; det_y];
 end
+
+
+

@@ -204,8 +204,8 @@ hex_plot(histcounts(im_chan,n_pixl), hot);
 %generate confocal image
 [sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
 
-if options.pixShift
-    shift_img = circshift(sum_img(1:2:end,:),-1,2);
+if options.pixShift ~= 0
+    shift_img = circshift(sum_img(1:2:end,:),options.pixShift,2);
     sum_img(1:2:end,:) = shift_img;
 end
 
