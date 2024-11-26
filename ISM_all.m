@@ -15,7 +15,7 @@ options.t_lifetime  = 0;
 options.q_lifetime  = 0;
 
 %1.02
-options.ISM_binning = 1.0125;%1.08;
+options.ISM_binning = 1;%1.08;
 options.WF_binning = 1.062;
 options.ISM_sampling = 0;
 
@@ -51,13 +51,13 @@ options.add_plt     = 0;
 options.save_image  = 1;
 options.plot_reso   = 0;
 
-options.pixShift = 1;
+options.pixShift = 0;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Florencia\Third Harmonic Project\SHG\brain_SG_004.ptu';
+fname       = 'W:\Oleksii\2023\2023-07-11_ISM_SMLM\data.sptw\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_4.ptu';
 dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
-caliname    = 'C:\Users\NRadmacher\Documents\Uni\PHD\Code\ISM\get-ism\ismCallibrationthForSHG.mat';
+caliname    = 'ismCallibration230711 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.mat';
 
 files       = dir('W:\Niels\Messungen_Daten\240927_ism\lifetime.sptw\GroupMeas_2\gattaBeadsRed*.ptu');
 

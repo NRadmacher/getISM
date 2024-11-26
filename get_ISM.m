@@ -256,13 +256,13 @@ if options.ISM
     shift_x     = sv(1, im_chan+1).';
     shift_y     = sv(2, im_chan+1).';
     
-    [optBinning] = getISMbinning(s_pixl_y,sv, 24);
-    
+%     [optBinning] = getISMbinning(s_pixl_y,sv, 24);
+    factor = options.ISM_binning;
     ISM_binning = 1;
     ISM_R = IM_R / ISM_binning;
     %apply ISM reassigment vektor
-    ISM_posx    = im_posx + shift_x.*(calib.pixSize/IM_R);
-    ISM_posy    = im_posy + shift_y.*(calib.pixSize/IM_R);
+    ISM_posx    = im_posx + shift_x.*(calib.pixSize/IM_R)*factor;
+    ISM_posy    = im_posy + shift_y.*(calib.pixSize/IM_R)*factor;
     
     clear shift_y shift_x;
     fprintf('Done!\n');

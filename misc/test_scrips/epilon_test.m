@@ -8,6 +8,8 @@ clc
 fname       = 'W:\Niels\Messungen_Daten\240912_ism\lifetime.sptw\gattaBeadsRed_2.ptu';
 caliname    = 'ismCallibration240912_ism.mat';
 
+lamde = 0.708;
+
 %nice colormap from TNT
 cmap = cmap_greenFireBlue;
 
@@ -58,10 +60,12 @@ fprintf('ISM reasigment ... ');
 calib       = open(caliname);
 sv          = calib.shiftVector;
 if calib.pixSize == IM_R
-    psf = calib.psf;
+    exPSF = calib.psf;
+    dePSF = calib.PSFfunc(calib.NA,calib.fd,lamde,IM_R,calib.over);
 else
     %calculate psf for current pixel size
-    psf = calib.PSFfunc(calib.NA,calib.fd,calib.lamex,IM_R,calib.over);
+    exPSF = calib.PSFfunc(calib.NA,calib.fd,calib.lamex,IM_R,calib.over);
+    dePSF = calib.PSFfunc(calib.NA,calib.fd,lamde,IM_R,calib.over);
 end
 shift_x     = sv(1, im_chan+1).';
 shift_y     = sv(2, im_chan+1).';
@@ -99,7 +103,7 @@ handles.Image = imcrop(ismImg,cutPos);
 handles.fig = f;
 max_eps = 0.5;
 min_eps = 0;
-minor_step = (max_eps-min_eps)/100;
+minor_step = (max_eps-min_eps)/200;
 major_step = 10*minor_step;
 
 %position and values of slider
@@ -110,7 +114,7 @@ handles.slider = uicontrol( 'Style','slider',...
 
 %action listener to update image after silder has changed
 handles.Listener = addlistener(handles.slider,'Value','PostSet',...
-    @(s,e) deconvolve(handles,ismImg,psf,cmap,cutPos));
+    @(s,e) deconvolve(handles,ismImg,dePSF,exPSF,cmap,cutPos));
 
 %contrast button
 handles.button = uicontrol('Style','pushbutton','String','Spot','Position',[505 0 40 20],'Callback',@(s,e) spot(handles));
@@ -126,9 +130,10 @@ colorbar(ax)
 
 
 %% user functions
-function deconvolve(handles, ISM_img,psf,cmap,cutPos)
+function deconvolve(handles, ISM_img,dePSF,exPSF,cmap,cutPos)
     slider_value = get(handles.slider,'Value');
-    image  = ISM_frw(ISM_img,psf,slider_value);
+%     image  = ISM_frw(ISM_img,psf,slider_value);
+    image = ISMfrwOpt(ISM_img, dePSF, exPSF, slider_value);
     image = imcrop(image,cutPos);
     handles.Image = image;
     imagesc(handles.Image);
