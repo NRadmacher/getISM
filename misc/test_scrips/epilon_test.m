@@ -5,8 +5,8 @@ clc
 
 %% Loadind data
 
-fname       = 'W:\Niels\Messungen_Daten\240912_ism\lifetime.sptw\gattaBeadsRed_2.ptu';
-caliname    = 'ismCallibration240912_ism.mat';
+fname       = 'D:\PHD\Data\2023\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_4.ptu';
+caliname    = 'ismCallibration230711 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.mat';
 
 lamde = 0.708;
 
@@ -78,7 +78,7 @@ clear shift_y shift_x;
 fprintf('Done!\n');
 %% plot
 
-[optBinning] = getISMbinning(s_pixl_y,sv, 24);
+[optBinning] = getISMbinning(s_pixl_y,sv, 5);
 
 ISM_binning = optBinning;
 ISM_R = IM_R / ISM_binning;
@@ -101,7 +101,7 @@ cutPos = rec.Position;
 %image with silder to adjust epsilon
 handles.Image = imcrop(ismImg,cutPos);
 handles.fig = f;
-max_eps = 0.5;
+max_eps = 0.25;
 min_eps = 0;
 minor_step = (max_eps-min_eps)/200;
 major_step = 10*minor_step;
