@@ -24,14 +24,25 @@ for i =-wd:wd
         r(i+wd+1,j+wd+1) = sum(img_a.*circshift(img_b,[i j]),'all');
     end
 end
-% r = xcorr2(img_a,img_b);
 
 maximum = max(max(r));
 [shift_y,shift_x]=find(r==maximum);
 
-if ~isempty(shift_y)&& ~isempty(shift_x)
+% h = figure;
+% ax = axes(h);
+% colormap(h,cmap_greenFireBlue)
+% imagesc(ax,r);
+% hold on;
+% axis off;
+% set(ax,'DataAspectRatio', [1,1,1], ...
+%     'PlotBoxAspectRatio',[1 1 1], ...
+%     'XDir','normal', ...
+%     'YDir','reverse');
+% file_name = append('beads',string(maximum),'.png');
+% exportgraphics(ax, file_name,'Resolution',600)
+% close(h)
 
-%     r_sub = r(half_y-wd : half_y+wd, half_x-wd : half_x+wd);
+if ~isempty(shift_y)&& ~isempty(shift_x)
 
     g = [-wd wd];
 
@@ -47,8 +58,6 @@ if ~isempty(shift_y)&& ~isempty(shift_x)
     end
     dx = fx(shift_y(1),shift_x(1));
     dy = fy(shift_y(1),shift_x(1));
-%     dx = shift_x - size(img_a,2);
-%     dy = shift_y - size(img_a,1);
 else
     dx = 0;
     dy = 0;

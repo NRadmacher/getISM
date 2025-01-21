@@ -1,7 +1,7 @@
 %claculate ISM shift Vercores and PSF
 
-fname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.ptu';
-dcname = 'C:\Users\NRadmacher\Documents\Uni\PHD\Messung_Daten\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_dark5.ptu';
+fname = 'W:\Niels\Messungen_Daten\250108_ism\aligment.sptw\GroupMeas_2\gattaBeadsRed_7_z100,60µm_1.ptu';
+dcname = 'W:\Niels\Messungen_Daten\240830_ism\lifetime.sptw\dc_2.ptu';
 
 % fname = 'W:\Niels\Messungen_Daten\240807_ism\lifetime.sptw\gattaBeadsRed_6.ptu';
 % fname = 'W:\Niels\Messungen_Daten\240823_ismAligment\lifetime.sptw\gattaBeadsRed_4.ptu';
@@ -18,6 +18,8 @@ NA = 1.49;
 fd = 1800;
 %excitation wavelenght [µm]
 lamex = 0.640;
+%detection wavelenght [µm]
+lamde = 0.698;
 
 %adjustment for shiftet back and forward strock
 pixShift = 0;
@@ -107,6 +109,7 @@ calibration.over    = over;
 calibration.NA      = NA;
 calibration.fd      = fd;
 calibration.lamex   = lamex;
+calibration.lamde   = lamde;
 calibration.PSFfunc = @PSF;
 disp("PSF fit done!")
 %% generate shift Vectors

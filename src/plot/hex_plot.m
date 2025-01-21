@@ -12,7 +12,7 @@ if numel(data) == 23
     det_y = 1.*[A,A(1:end-1)./2,B,-A(1:end-1)./2,-A];
     det_y = repmat(det_y, 6,1);
     
-    numb = 0:22;
+    numb = 1:23;
 
 else
 
@@ -44,8 +44,8 @@ txt = string(numb);
 
 figure
 colormap(map)
-patch(X,Y,C)
-text(det_x(1,:), det_y(1,:), txt, 'Color','g')
+patch(Y,X,C)
+text(det_y(1,:), det_x(1,:), txt, 'Color','g')
 set(gca,'DataAspectRatio', [1,1,1], ...
     'PlotBoxAspectRatio',[1 1 1])
 colorbar

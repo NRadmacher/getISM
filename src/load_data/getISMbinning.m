@@ -12,12 +12,14 @@ nPixl = size(shiftVectors,2);
 im_chan = reshape(yy,[nPixl*n_pixl_y, 1]);
 im_posy = reshape(xx,[nPixl*n_pixl_y, 1]);
 im_posx = ones(nPixl*n_pixl_y, 1);
+im_frame = ones(nPixl*n_pixl_y, 1);
 
 %some detectors have one pixel turend off
 ind = im_chan ~= offPixel;
 im_chan = im_chan(ind);
 im_posx = im_posx(ind);
 im_posy = im_posy(ind);
+im_frame = im_frame(ind);
 
 %apply shift vector for pixel reassigment
 shift_y     = shiftVectors(2, im_chan);
@@ -25,7 +27,7 @@ im_posy = im_posy + shift_y.';
 
 %
 function ISMstd = ISMpixelShiftSTD(binning)
-    [img, ~, ~] = img_ps(im_posx, im_posy, 1, n_pixl_y,binning);
+    [img, ~, ~] = img_ps(im_posx, im_posy, im_frame, 1, n_pixl_y,binning,1,1);
     % Pixels at the edge have less count due to ism pixel reassigment
     img = img(9:end-7);
     ISMstd = std(img);

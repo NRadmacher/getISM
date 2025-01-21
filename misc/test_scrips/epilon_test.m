@@ -5,8 +5,8 @@ clc
 
 %% Loadind data
 
-fname       = 'D:\PHD\Data\2023\230711_ISM_STORM\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_4.ptu';
-caliname    = 'ismCallibration230711 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.mat';
+fname       = 'W:\Niels\Messungen_Daten\250108_ism\aligment.sptw\GroupMeas_2\gattaBeadsRed_8_z100,70µm_1.ptu';
+caliname    = 'ismCallibration250108 aligment GroupMeas_2 gattaBeadsRed_7_z100,60µm_1.mat';
 
 lamde = 0.708;
 
@@ -101,7 +101,7 @@ cutPos = rec.Position;
 %image with silder to adjust epsilon
 handles.Image = imcrop(ismImg,cutPos);
 handles.fig = f;
-max_eps = 0.25;
+max_eps = 0.1;
 min_eps = 0;
 minor_step = (max_eps-min_eps)/200;
 major_step = 10*minor_step;

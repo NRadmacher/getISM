@@ -1,13 +1,35 @@
 function [shiftVector, save_name] = getShiftVectors(fname, dcname)
 
+%Image title and name from file name
 tmp_name        = strsplit(fname, '\');
-
-if contains(tmp_name{end-1},".")
-    date     = tmp_name{end-2};
-else
-    date     = tmp_name{end-1};
+%find date in filepath
+i = 1;
+date = [];
+datePat = digitsPattern(6);
+while isempty(date)
+    if i == size(tmp_name,2)
+        ME = MException('Filemane:nodate','file %s \ncontains no date', fname);
+        date = {'000000'};
+        fprintf('Warning no date found in file name!\n')
+        break;
+    end
+    date = extract(tmp_name{end-i},datePat);
+    i = i+1;
 end
-% date            = tmp_name{end-1};
+date = date{1};
+
+%check if file was recorded by Symphotime and add ws name to image name
+if contains(tmp_name{end-i+2},'.')
+    wsName  = strsplit(tmp_name{end-i+2},'.');
+    date    = append(date,' ',wsName{1});
+    %check if file is part of Group Measurment and add name of GM to image
+    %name
+    if (i-3) > 0
+        gmName  = tmp_name{end-i+3};
+        date    = append(date,' ',gmName);
+    end
+end
+
 img_name        = tmp_name{end};
 img_name        = strsplit(img_name, '.');
 img_name        = img_name{end-1};
@@ -15,8 +37,17 @@ img_name        = append(date,' ',img_name);
 
 [~, ~, im_posx, im_posy, im_chan, head] = ScanRead(fname);
 
-im_posx = double(im_posx);
-im_posy = double(im_posy);
+im_posx     = double(im_posx);
+im_posy     = double(im_posy);
+im_frame    = cumsum([1; diff(im_posy)<0]);
+
+if isfield(head, 'ImgHdr_FrameNum')
+    if max(im_frame)~= head.ImgHdr_FrameNum
+        fprintf('Warning calculated numner of frames does not match header file!\n')
+    end
+end
+nFrame = max(im_frame);
+frameBinning = 1;
 
 %number of pixels in recorded image
 s_pixl_x = head.ImgHdr_PixX;
@@ -39,27 +70,22 @@ if isfield(head,'HWInpChan_Enabled')
         n_pixl = 32;
         title_name = 'MPMT shift vectors';
         save_name = 'MPMT_shift_vectors';
-        i = 9;
     else
         n_pixl = 23;
         title_name = 'shift vectors';
         save_name = 'SPAD_shift_vectors';
-        i = 12;
     end
     pixShift = 0;
 elseif isfield(head,'HW_InpChannels')
     n_pixl = head.HW_InpChannels;
     title_name = 'shift vectors';
     save_name = 's23_shift_vectors';
-    pixShift = 1;
-    i = 12;
-    
+    pixShift = 1;  
 end
 if strcmp(head.CreatorSW_Name, 'SymPhoTime 64')
     n_pixl = 23;
     title_name = 'shift vectors';
     save_name = 'SPAD_shift_vectors_FlimBee';
-    i = 12;
 end
 
 %% calculate shift vectors with image correlation and phase correlation
@@ -74,25 +100,26 @@ imgs = cell(n_pixl, 1);
 
 for pixl=1:n_pixl
     %care THG
-       ind  = (im_pix==pixl);
-       
-       im_x = im_posx(ind);
-       im_y = im_posy(ind);
-       
-       img = img_ps(im_x, im_y, s_pixl_x, s_pixl_y, 1);
-       
-       if pixShift
-           shift_img = circshift(img(1:2:end,:),-1,2);
-           img(1:2:end,:) = shift_img;
-       end
-       
-       imgs{pixl} = img;
+   ind  = (im_pix==pixl);
+   
+   im_x = im_posx(ind);
+   im_y = im_posy(ind);
+   im_f = im_frame(ind);
+   
+   img = img_ps(im_x, im_y, im_f, s_pixl_x, s_pixl_y, 1,nFrame,frameBinning);
+   img = sum(img,3);
+   if pixShift
+       shift_img = circshift(img(1:2:end,:),-1,2);
+       img(1:2:end,:) = shift_img;
+   end
+   
+   imgs{pixl} = img;
 end
 disp("conversion to imges done")
 
-shift_x_ic = zeros(n_pixl,1);
-shift_y_ic = zeros(n_pixl,1);
 % x is fist coordinat and y second 
+shiftXic = zeros(n_pixl,n_pixl);
+shiftYic = zeros(n_pixl,n_pixl);
 
 if im_res < 0.03
     wd = 40;
@@ -100,33 +127,30 @@ else
     wd = 20;
 end
 
-center = imgs{i};
-parfor j = 1:n_pixl
-    
-    %Phase correlarion to find shift between ism images(unshifted)
-    %image i is the "center"
-    
-    [dx,dy] = image_corr(center,imgs{j}, wd);
-%     [dx,dy] = phase_corr(center,imgs{j});
-    shift_x_ic(j) =  dx;
-    shift_y_ic(j) =  dy;
+%global shift
+for i = 1:n_pixl
+    for j = 1:i-1
+        [dx,dy] = image_corr(imgs{i},imgs{j}, wd);
+        shiftXic(i,j) =  dx;
+        shiftXic(j,i) =  -dx;
+        shiftYic(i,j) =  dy;
+        shiftYic(j,i) =  -dy;
+    end
 end
+xc  = mean(shiftXic);
+yc  = mean(shiftYic);
 
-%% plots
-
-xc  = -1.*(shift_x_ic);
-yc  = -1.*(shift_y_ic);
 %shift vector
-sv_ic  = -[xc, yc];
+svIc  = [xc; yc].';
+%% plots
 
 h = figure;
 ax = axes(h);
 hold on
-quiver(xc.*2, yc.*2 ,sv_ic(:,1),sv_ic(:,2),0, 'LineWidth', 2)  
+quiver(xc.*2, yc.*2 ,-svIc(:,1).',-svIc(:,2).',0, 'LineWidth', 2)  
 numb = 0:n_pixl-1;
 txt = string(numb);
 plot(xc.*2, yc.*2,'xb','MarkerSize',10, 'LineWidth', 2, 'MarkerEdgeColor', 'green')
-% plot(xc.*2, yc.*2 ,'o','MarkerSize',10, 'LineWidth', 2, 'MarkerEdgeColor', 'red')
 set(ax,'DataAspectRatio', [1,1,1], ...
     'PlotBoxAspectRatio',[1 1 1]);
 ylabel('y shift [pixel]')
@@ -151,9 +175,9 @@ xlim( [-limits, limits] );
 set(ax,'YTick',get(ax,'XTick'));
 title(append(title_name,' image correlation'), 'FontSize', 15)
 name = append(img_name, '_sv');
-file_name = append(name,'.pdf');
+file_name = append(name,'.png');
 exportgraphics(ax, file_name,'Resolution',600)
 
-shiftVector = sv_ic.';
+shiftVector = svIc.';
 end
 

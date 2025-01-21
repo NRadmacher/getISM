@@ -29,37 +29,38 @@ options.wf_rio      = 0;
 options.ISM_rio     = 0;
 
 options.sb_lenght   = 5;
-confx = 52;
-confy = 162;
+confx = 152;
+confy = 183;
 
-ismx = 52;
-ismy = 103;
+ismx = 151;
+ismy = 182;
 options.reso_line_conf  = [[confx-20 confx+20]; [confy confy]];
-options.reso_line_ISM   = [[ismx ismx]; [ismy-20 ismy+20]];
+options.reso_line_ISM   = [[ismx-20 ismx+20]; [ismy ismy]];
 options.reso_line_frw   = options.reso_line_ISM;%[[323 323]; [216 256]];
 
 options.lt_range = [0.1 5];
 
 options.ISM         = 1;
 options.wf          = 0;
-options.frw         = 0;
-options.sofi        = 0;
+options.frw         = 1;
+options.sofi        = 1;
 
-options.eps = 0.08;
+options.eps = 0.09;
 
 options.add_plt     = 0;
 options.save_image  = 1;
 options.plot_reso   = 0;
 
 options.pixShift = 0;
+options.frameBinning = 1;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Oleksii\2023\2023-07-11_ISM_SMLM\data.sptw\gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_4.ptu';
+fname       = 'W:\Niels\Messungen_Daten\250121_ism\perofskite.sptw\MAPI_2p5_10MHz_OD3_7.ptu';
 dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
-caliname    = 'ismCallibration230711 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2 gattaQ_beads_atto647n_1p9mW_OD2_50nm-pix_2.mat';
+caliname    = 'W:\Niels\TNT\ismCallibration250108 aligment GroupMeas_2 gattaBeadsRed_7_z100,60µm_1.mat';
 
-files       = dir('W:\Niels\Messungen_Daten\240927_ism\lifetime.sptw\GroupMeas_2\gattaBeadsRed*.ptu');
+files       = dir('W:\Niels\Messungen_Daten\250121_ism\perofskite.sptw\MAPI_2p5*.ptu');
 
 %% run
 get_ISM(fname, dcname, irfname, caliname, options);

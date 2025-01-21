@@ -72,13 +72,14 @@ end
 img_name        = tmp_name{end};
 img_name        = strsplit(img_name, '.');
 img_name        = img_name{end-1};
-
 img_name        = append(date,' ',img_name);
 
 ISM_name        = append(img_name, ' ISM');
+ismSOFI_name    = append(img_name, ' ISM SOFI');
 ISM_fw_name     = append(img_name, ' ISM Fourier-reweighted');
 PSF_name        = append(img_name, ' psf');
 colf_name       = append(img_name, ' no ISM');
+SOFI_name       = append(img_name, ' SOFI');
 wf_name         = append(img_name, '  WF');
 LT_name         = append(img_name, ' lt');
 
@@ -108,6 +109,14 @@ im_posy         = im_posy(ind);
 im_time         = im_time(ind);
 im_posx         = im_posx * head.ImgHdr_PixX;
 im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
+im_frame        = cumsum([1; diff(im_posy)<0]);
+
+if isfield(head, 'ImgHdr_FrameNum')
+    if max(im_frame)~= head.ImgHdr_FrameNum
+        fprintf('Warning calculated numner of frames does not match header file!\n')
+    end
+end
+nFrame = max(im_frame);
 
 %remove time delay due to unsyncronised Multi Harps
 % im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
@@ -205,18 +214,20 @@ if options.pixShift ~= 0
     ind = mod(im_posy,2) == 0;
     im_posx(ind) = im_posx(ind) + options.pixShift;
 end
-
+frameBinning = options.frameBinning;
 %% Confocal Image
 %generate confocal image
-[sum_img, sum_lin, ~] = img_ps(im_posx, im_posy, s_pixl_x, s_pixl_y,1);
+[confImage, confLine, ~] = img_ps(im_posx, im_posy, im_frame,...
+    s_pixl_x, s_pixl_y, 1, nFrame,frameBinning);
 
-% totImage = zeros(s_pixl_x,s_pixl_y,3);
-% totImage(:,:,1) = sum_img;
+confSum = sum(confImage,3);
+% totImage = zeros(s_pixl_x,s_pixl_y,5);
+% totImage(:,:,1) = rescale(confSum);
 r = figure('Visible','off');
 r_ax = axes('Parent', r);
 
 %plot and save
-img_plot( sum_img, hot, colf_name, ...
+img_plot( confSum, hot, colf_name, ...
     'confocal', options.sb_lenght, IM_R, options.conf_rio, options.reso_line_conf, ...
     options.plot_reso, options.save_image, r, r_ax);
 
@@ -256,10 +267,9 @@ if options.ISM
     shift_x     = sv(1, im_chan+1).';
     shift_y     = sv(2, im_chan+1).';
     
-%     [optBinning] = getISMbinning(s_pixl_y,sv, 24);
+    [optBinning] = getISMbinning(s_pixl_y,sv*(calib.pixSize/IM_R), 24);
     factor = options.ISM_binning;
-    ISM_binning = 1;
-    ISM_R = IM_R / ISM_binning;
+    ISM_binning = optBinning;
     %apply ISM reassigment vektor
     ISM_posx    = im_posx + shift_x.*(calib.pixSize/IM_R)*factor;
     ISM_posy    = im_posy + shift_y.*(calib.pixSize/IM_R)*factor;
@@ -270,9 +280,11 @@ end
 %% ISM Image
 if options.ISM
     %crate ISM image
-    [ISM_img, ISM_lin, ~]  = img_ps(ISM_posx, ISM_posy, s_pixl_x, s_pixl_y, ISM_binning);
+    [ismImage, ISM_lin, ~]  = img_ps(ISM_posx, ISM_posy, im_frame,...
+        s_pixl_x, s_pixl_y, ISM_binning, nFrame, frameBinning);
+    
     if options.ISM_sampling
-        [ISM_img, ~,~] = FourierUpsampling(ISM_img, 2);
+        [ismImage, ~,~] = FourierUpsampling(ismImage, 2);
         ISM_R = IM_R / 2 / ISM_binning;
         ISM_pix_time = pix_time / 2;
     else
@@ -280,63 +292,33 @@ if options.ISM
         ISM_pix_time = pix_time;
     end
     
-%     totImage(:,:,2) = ISM_img;
+    ismSum = sum(ismImage,3);
+%     totImage(:,:,2) = rescale(ismSum);
     %calculate ISM darkcount: Dc is linear and every ISM pixel gets count from
     %23 pixels, either the same pixel in the sampel or a shifted on. But always
     %23. Thus darkcount = sum(dc)
     
     %plot and save
-    img_plot(max(ISM_img - sum(dc) * ISM_pix_time, 0), hot, ISM_name, ...
+    img_plot(max(ismSum - sum(dc) * ISM_pix_time, 0), hot, ISM_name, ...
         'ISM', options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_ISM, ...
         options.plot_reso, options.save_image, r, r_ax);
 end
 %% Fourier-reweighted ISM
 
 if options.frw
-    if options.ISM_sampling
-        FW_R = ISM_R/2;
-    else
-        FW_R = ISM_R;
-    end
 
-    if calib.pixSize ~= FW_R
-        %calculate psf for current pixel size
-        PSF = calib.PSFfunc(calib.NA,calib.fd,calib.lamex,...
-            FW_R,calib.over);
-    else
-        PSF = calib.psf;
-    end
+    exPSF = calib.PSFfunc(calib.NA,calib.fd,calib.lamex,IM_R,calib.over);
+    dePSF = calib.PSFfunc(calib.NA,calib.fd,calib.lamde,IM_R,calib.over);
     
-    W_ISM_img1 = ISM_frw(ISM_img,PSF,options.eps);
+    fISMimg = ISMfrwOpt(ismSum,dePSF,exPSF,options.eps);
 
-%     totImage(:,:,3) = W_ISM_img1;
+%     totImage(:,:,3) = rescale(fISMimg);
 
     %plot and save fr ISM
-    img_plot(W_ISM_img1, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
-        options.sb_lenght, FW_R, options.ISM_rio, options.reso_line_frw, ...
+    img_plot(fISMimg, hot, ISM_fw_name, 'Fourier reweighted ISM', ...
+        options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_frw, ...
         options.plot_reso, options.save_image, r, r_ax);
-
-    if options.add_plt
-        %iamge size 
-        t_psf = calib.psf;
-%         nx = -options.conf_rio(1,1)+options.conf_rio(2,1);
-%         ny = -options.conf_rio(1,2)+options.conf_rio(2,2);
-%         [Nx,Ny] = size(t_psf);
-%         if Nx<nx || Ny<ny
-%             nx = Nx;
-%             ny = Ny;
-%         end
-%         t_psf = t_psf(floor((Nx-nx)/2)+(1:nx), floor((Ny-ny)/2)+(1:ny));
-
-        img_plot(t_psf, hot, PSF_name, 'confocal PSF', ...
-        0.5, IM_R, 0, [[17 17]; [16-10 16+10]], ...
-        options.plot_reso, options.save_image, r, r_ax);
-    end
 end
-
-%% all in one
-
-% TNTvisualizer(totImage, struct('title',img_name,'metadata',struct('pixelsize',IM_R,'pixelsize_unit',[char(181) 'm'])));
 %% Plot reso
 
 if options.plot_reso
@@ -352,14 +334,14 @@ end
 %% Single Expoential lifetime
 if options.s_lifetime
     %get pixel lifetimes via MLE pattern matching
-    lt_img = get_single_lifetime(ISM_img,ISM_lin,...
+    lt_img = get_single_lifetime(ismSum,ISM_lin,...
         im_tcspc = im_tcspc, tail_t = tail_t, tail_bin_l = tail_bin_l,...
         tail_start_time = tail_start_time, tcspc_t = tcspc_t,...
         max_lt = max_lt, lt_cut_off = lt_cut_off, fname = LT_name, ...
         ana_plt = options.add_plt);
 
     %plot pxel wise lt values scaled with image intensity
-    lt_img_plot(lt_img, ISM_img, c_map, lt_cut_off, options.lt_range, ...
+    lt_img_plot(lt_img, ismSum, c_map, lt_cut_off, options.lt_range, ...
         'Lifetime', LT_name, 4, ISM_R, ISM_binning, options.save_image)   
 end
 %% Tripple lifetime unmixing
@@ -399,7 +381,7 @@ if options.d_lifetime
     long_title = append(names{1,2}, ': ', names{2,2});
     
     %unmix the two patterns
-    [lt_amp_img] = get_bi_lifetime(ISM_img,ISM_lin,im_tcspc = im_tcspc, ...
+    [lt_amp_img] = get_bi_lifetime(ismSum,ISM_lin,im_tcspc = im_tcspc, ...
         tail_t = tail_t, tail_bin = tail_bin_l, tail_start_time = tail_start_time, ...
         tcspc_t = tcspc_t, pattern = pattern, pattern_tau = pattern_tau, ...
         name = names, fname = ISM_name, ana_plt = options.add_plt);
@@ -503,14 +485,24 @@ if(options.q_lifetime || options.d_color)
 end
 %% SOFI
 if options.sofi
-    ISM_SOFI_img = get_ISMSOFI(ISM_img, ISM_lin, im_time, head);
+    
+    TNTvisualizer(ismImage, struct('title',img_name,'metadata',struct('pixelsize',IM_R,'pixelsize_unit',[char(181) 'm'])));
+    sofiISM = getSOFI(ismImage, 3, nFrame/frameBinning);
+    img_plot(sofiISM, hot, ismSOFI_name, ...
+        'ISM SOFI', options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_ISM, ...
+        options.plot_reso, options.save_image, r, r_ax);
 
-    img_plot(ISM_SOFI_img, spectrum, 'sofi ism', 'sofi ism', 1, IM_R, ISM_binning, options.reso_line_ISM, 0, 1);
+    confSOFI = getSOFI(confImage, 3, nFrame/frameBinning);
+    img_plot(confSOFI, hot, SOFI_name, ...
+    'confocal SOFI', options.sb_lenght, IM_R, options.conf_rio, options.reso_line_conf, ...
+    options.plot_reso, options.save_image, r, r_ax);
 
-    SOFI_img = get_ISMSOFI(sum_img, sum_lin, im_time, head);
-
-    img_plot(SOFI_img, spectrum, 'sofi sum', 'sofi sum', 1, IM_R, 1, options.reso_line_ISM, 0, 1);
+%     totImage(:,:,4) = rescale(confSOFI);
+%     totImage(:,:,5) = rescale(sofiISM);
 end
+%% all in one
+
+% TNTvisualizer(totImage, struct('title',img_name,'metadata',struct('pixelsize',IM_R,'pixelsize_unit',[char(181) 'm'])));
 %% Additional figures for controle
 if options.add_plt
     f = figure;

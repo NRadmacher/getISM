@@ -1,5 +1,5 @@
 
-fname ='W:\Niels\Messungen_Daten\240927_ism\lifetime.sptw\gattaBeadsRed_7.ptu';
+fname ='W:\Niels\Messungen_Daten\250108_ism\aligment.sptw\GroupMeas_2\gattaBeadsRed_7_z100,60µm_1.ptu';
 
 [~, ~, im_posx, im_posy, im_chan, head] = ScanRead(fname);
 
@@ -15,6 +15,15 @@ im_chan = im_chan(ind);
 im_posx = im_posx(ind);
 im_posy = im_posy(ind);
 
+im_frame        = cumsum([1; diff(im_posy)<0]);
+
+if isfield(head, 'ImgHdr_FrameNum')
+    if max(im_frame)~= head.ImgHdr_FrameNum
+        fprintf('Warning calculated numner of frames does not match header file!\n')
+    end
+end
+nFrame = max(im_frame);
+frameBinning = 1;
 %pixel size
 im_res = head.ImgHdr_PixResol;
 
@@ -34,11 +43,12 @@ for pixl=1:n_pixl
        
        im_x = im_posx(ind);
        im_y = im_posy(ind);
+       im_f = im_frame(ind);
        
-       img = img_ps(im_x, im_y, s_pixl_x, s_pixl_y, 1);
+       img = img_ps(im_x, im_y, im_f, s_pixl_x, s_pixl_y, 1,nFrame,frameBinning);
        
        if ~isempty(img)
-        imgs(:,:,pixl) = img;
+        imgs(:,:,pixl) = rescale(sum(img,3));
        end
 end
 

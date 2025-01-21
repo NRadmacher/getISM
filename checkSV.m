@@ -22,11 +22,11 @@ ind = logical(ind);
 
 %% 
 
-calib = open("ismCallibration240927 lifetime GroupMeas_2 gattaBeadsRed_18_z0,80µm_1.mat");
+calib = open("ismCallibration250108 aligment GroupMeas_2 gattaBeadsRed_7_z100,60µm_1.mat");
 
 norm = vecnorm(calib.shiftVector,2,1).*calib.pixSize;
 
-alpha = 1+(708/640);
+alpha = 1+(708/640)^2;
 % alpha = 2;
 
 M = mean(dist(ind)./(alpha*norm(ind)),"omitnan");
