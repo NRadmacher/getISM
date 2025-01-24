@@ -16,7 +16,6 @@ if nargin<2 || isempty(ncum)
     ncum = 6;
 end
 
-
 % how often to coarsen time scale(number of lagtime doubelings):
 if nargin<3 || isempty(ntime)
     ntime = ceil(log2(1e2/ncum));
@@ -52,7 +51,7 @@ if(size(im,3) ~= win )
 end
 soffull = zeros(a,b,ntime,ncum-1,floor(size(im,3)/win));
 im0 = zeros(a,b,floor(size(im,3)/win));
-% tmp = zeros(a,b,win);
+
 %going thought eatch batch of size win = ntime(old)
 for k=1:floor(size(im,3)/win)
     if nargin>3 && ~(nraster(1)==0 &&nraster(2)==0)
@@ -76,7 +75,5 @@ for k=1:floor(size(im,3)/win)
         end
     end
     sof = squeeze(mean(sum(soffull,5),3));
-%     tmp = sum(im0,3);
-%     mim(cat(3,tmp,abs(sof)));
 end
 

@@ -28,7 +28,7 @@ options.conf_rio    = 0;
 options.wf_rio      = 0;
 options.ISM_rio     = 0;
 
-options.sb_lenght   = 5;
+options.sb_lenght   = 1;
 confx = 152;
 confy = 183;
 
@@ -55,12 +55,12 @@ options.pixShift = 0;
 options.frameBinning = 1;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Niels\Messungen_Daten\250121_ism\perofskite.sptw\MAPI_2p5_10MHz_OD3_7.ptu';
+fname       = 'W:\Niels\Messungen_Daten\250124_ism\perovskiteTransport.sptw\TCMH_SNO2_no1_pulsed_10MHz_28Hz_OD1_4.ptu';
 dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
 caliname    = 'W:\Niels\TNT\ismCallibration250108 aligment GroupMeas_2 gattaBeadsRed_7_z100,60µm_1.mat';
 
-files       = dir('W:\Niels\Messungen_Daten\250121_ism\perofskite.sptw\MAPI_2p5*.ptu');
+files       = dir('W:\Niels\Messungen_Daten\250122_ism\perovskite.sptw\MAPI*.ptu');
 
 %% run
 get_ISM(fname, dcname, irfname, caliname, options);

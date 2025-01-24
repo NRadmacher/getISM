@@ -13,7 +13,8 @@ function [im_time, im_tcspc, im_posx, im_posy, im_chan, head] = ScanRead(name)
     im_chan  = [];
     if head.ImgHdr_Dimensions == 1
 
-        [~, im_tcspc, im_chan, ~, ~, ~] = PTU_Read(name, head.TNTnPhoton, head);
+        [im_sync, im_tcspc, im_chan, ~, ~, ~] = PTU_Read(name, head.TNTnPhoton, head);
+        im_time = im_sync./head.TNTsyncRate;% + im_tcspc*head.TNTtcspsBinSize;
         return
     end
     nx     = head.ImgHdr_PixX;

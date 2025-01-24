@@ -109,14 +109,17 @@ im_posy         = im_posy(ind);
 im_time         = im_time(ind);
 im_posx         = im_posx * head.ImgHdr_PixX;
 im_time         = im_time./head.TTResult_SyncRate; % photon arrival in seconds
-im_frame        = cumsum([1; diff(im_posy)<0]);
+im_frame        = cumsum([1; diff(im_posy)<(-head.TNTpixY/2)]);
 
 if isfield(head, 'ImgHdr_FrameNum')
     if max(im_frame)~= head.ImgHdr_FrameNum
         fprintf('Warning calculated numner of frames does not match header file!\n')
+        nFrame = head.ImgHdr_FrameNum;
+    else
+        nFrame = max(im_frame);
     end
 end
-nFrame = max(im_frame);
+
 
 %remove time delay due to unsyncronised Multi Harps
 % im_tcspc = remove_MHH_offset(im_tcspc,im_chan, head.max_bin, 500);
@@ -485,18 +488,36 @@ if(options.q_lifetime || options.d_color)
 end
 %% SOFI
 if options.sofi
+    sofiOrder = 4;
+    batchSize = 500;
     
     TNTvisualizer(ismImage, struct('title',img_name,'metadata',struct('pixelsize',IM_R,'pixelsize_unit',[char(181) 'm'])));
-    sofiISM = getSOFI(ismImage, 3, nFrame/frameBinning);
-    img_plot(sofiISM, hot, ismSOFI_name, ...
-        'ISM SOFI', options.sb_lenght, ISM_R, options.ISM_rio, options.reso_line_ISM, ...
-        options.plot_reso, options.save_image, r, r_ax);
-
-    confSOFI = getSOFI(confImage, 3, nFrame/frameBinning);
-    img_plot(confSOFI, hot, SOFI_name, ...
-    'confocal SOFI', options.sb_lenght, IM_R, options.conf_rio, options.reso_line_conf, ...
-    options.plot_reso, options.save_image, r, r_ax);
-
+    confSOFI = getSOFI(confImage, sofiOrder, batchSize);
+    sofiISM = getSOFI(ismImage, sofiOrder, batchSize);
+    
+    for i=2:sofiOrder
+        switch i
+            case 1
+                suffix = 'st';
+            case 2
+                suffix = 'nd';
+            case 3
+                suffix = 'rd';
+            otherwise
+                suffix = 'th';
+        end
+        order = [num2str(i) suffix ' order'];
+        
+        img_plot(rescale(sofiISM(:,:,i-1)), hot, append(ismSOFI_name, order), ...
+            append('ISM SOFI ', order), options.sb_lenght, ISM_R,...
+            options.ISM_rio, options.reso_line_ISM, options.plot_reso,...
+            options.save_image, r, r_ax);
+    
+        img_plot(rescale(confSOFI(:,:,i-1)), hot, append(SOFI_name, order), ...
+            append('confocal SOFI ', order), options.sb_lenght, IM_R,...
+            options.conf_rio, options.reso_line_conf, options.plot_reso,...
+            options.save_image, r, r_ax);
+    end
 %     totImage(:,:,4) = rescale(confSOFI);
 %     totImage(:,:,5) = rescale(sofiISM);
 end
