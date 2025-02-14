@@ -1,7 +1,7 @@
 
 
 
-files = dir('W:\Niels\Messungen_Daten\250124_ism\perovskiteTransport.sptw\short_fastLT_1\TCMH_SNO2_no1_pulsed_10MHz_OD3*.ptu');
+files = dir('W:\Niels\Messungen_Daten\250124_ism\perovskiteTransport.sptw\long_fastLT_4\TCMH_SNO2_no1_pulsed_10MHz*.ptu');
 
 f = figure;
 ax = axes(f);
