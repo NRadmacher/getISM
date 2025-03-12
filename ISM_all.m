@@ -8,7 +8,8 @@ clc
 %% Parameters for analysis
 
 options.lifetime    = 0;
-options.s_lifetime  = 0;
+%pixel wise mono exponetial pattern matching
+options.s_lifetime  = 1;
 options.d_lifetime  = 0;
 options.d_color     = 0;
 options.t_lifetime  = 0;
@@ -38,12 +39,13 @@ options.reso_line_conf  = [[confx-20 confx+20]; [confy confy]];
 options.reso_line_ISM   = [[ismx-20 ismx+20]; [ismy ismy]];
 options.reso_line_frw   = options.reso_line_ISM;%[[323 323]; [216 256]];
 
+%lifetime range for plotting
 options.lt_range = [0.1 5];
 
 options.ISM         = 1;
 options.wf          = 0;
-options.frw         = 1;
-options.sofi        = 1;
+options.frw         = 0;
+options.sofi        = 0;
 
 options.eps = 0.09;
 
@@ -55,7 +57,7 @@ options.pixShift = 0;
 options.frameBinning = 1;
 
 %% PTU files with data, DC, IRF
-fname       = 'W:\Niels\Messungen_Daten\250124_ism\perovskiteTransport.sptw\TCMH_SNO2_no1_pulsed_10MHz_28Hz_OD1_4.ptu';
+fname       = 'W:\Niels\Messungen_Daten\250306_ism\aligment.sptw\GroupMeas_1\gattaBeadsRed_2_z-0,60µm_1.ptu';
 dcname      = 'W:\Niels\Messungen_Daten\240806_ism\lifetime.sptw\dc_WL_2.ptu';
 irfname     = 'D:\PHD\Data\2022\220816\irf_ex470nm_005.ptu';
 caliname    = 'W:\Niels\TNT\ismCallibration250108 aligment GroupMeas_2 gattaBeadsRed_7_z100,60µm_1.mat';
