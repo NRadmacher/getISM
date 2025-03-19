@@ -159,8 +159,8 @@ else
     pix_time = head.ImgHdr_TimePerPixel/1e3;
 end
 
-max_bin = 1200;   
-%max_bin = head.max_bin;
+
+maxBin = floor(1/(head.TNTsyncRate * head.TNTtcspsBinSize));
 
 % TCSPC binning factor
 bin_factor = 1;
@@ -168,14 +168,19 @@ bin_factor = 1;
 % minimum numbers of photons to calculate lifetime
 lt_cut_off = 100;
 
-% tcspc tail_start in tcspc bin number !!FIX NEEDED!!
-% tail_start = indMax + fwhm; diode [600/700,275], TiSa [250], SEPIA [1700]
-tail_start = 130;
+%start of tail fit in ps after maximum of TSCPC curve
+tailOffset = 300e-12;
+%find TSCPC peak
+[N,edges] = histcounts(im_tcspc,max(im_tcspc));
+[~,ind] = max(N);
+irfPeak = edges(ind);
+%set start of tail fit in tscpcbins
+tailStart = irfPeak + round(tailOffset/head.TNTtcspsBinSize);
 
 % tcspc tail_end in tcspc bin number
-tail_end = max_bin - 20;
+tail_end = maxBin - 20;
 
-[tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(tail_start, tail_end, time_R, bin_factor);
+[tail_t, tail_bin_l, tail_start_time, tcspc_t] = get_lifetime_bins(tailStart, tail_end, time_R, bin_factor);
 
 % Max Lifetime in ns
 max_lt = 8;
